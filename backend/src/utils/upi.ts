@@ -1,13 +1,10 @@
 import QRCode from "qrcode";
 
-export async function generateUpiQr(
-  amount: number,
-  orderNumber: string
-): Promise<string> {
-  const upiId = process.env.UPI_ID || "madeline.chocolate@upi";
-  const upiName = process.env.UPI_NAME || "Madeline_chocolate";
+export async function generateUpiQr(amount: number): Promise<string> {
+  const upiId = process.env.UPI_ID || "sangibregit94@okicici";
+  const upiName = process.env.UPI_NAME || "SANGEETHA BREGIT A";
 
-  const upiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(upiName)}&am=${amount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(`Order ${orderNumber}`)}`;
+  const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${amount.toFixed(2)}&cu=INR`;
 
   return QRCode.toDataURL(upiUrl, {
     width: 300,

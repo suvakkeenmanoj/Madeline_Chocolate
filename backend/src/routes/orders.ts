@@ -1,11 +1,26 @@
 import { Router, Response } from "express";
+import multer from "multer";
 import prisma from "../lib/prisma";
 import { authenticate, AuthRequest } from "../middleware/auth";
 import { generateUpiQr } from "../utils/upi";
 import { generateInvoicePdf } from "../utils/pdf";
 import { sendOrderConfirmationEmail } from "../utils/email";
+import { uploadToCloudinary } from "../utils/cloudinary";
 
 const router = Router();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only JPG, JPEG, PNG, and WEBP files are allowed"));
+    }
+  },
+});
 
 const generateOrderNumber = () => {
   const date = new Date();
@@ -27,10 +42,17 @@ router.post("/", authenticate, async (req: AuthRequest, res: Response) => {
       state,
       pincode,
       applyGst,
+      utrNumber,
     } = req.body;
 
     if (!items?.length || !paymentMethod || !deliveryAddress || !phone) {
       return res.status(400).json({ message: "Missing required order fields" });
+    }
+
+    if (paymentMethod === "UPI") {
+      if (!utrNumber || typeof utrNumber !== "string" || utrNumber.trim().length < 4) {
+        return res.status(400).json({ message: "A valid UTR number is required for UPI payments" });
+      }
     }
 
     let subtotal = 0;
@@ -64,7 +86,8 @@ router.post("/", authenticate, async (req: AuthRequest, res: Response) => {
         totalAmount,
         gstAmount,
         paymentMethod,
-        paymentStatus: paymentMethod === "COD" ? "PENDING" : "PENDING",
+        paymentStatus: "PENDING",
+        utrNumber: paymentMethod === "UPI" ? utrNumber?.trim() : null,
         status: "ORDER_PLACED",
         deliveryAddress,
         phone,
@@ -135,7 +158,7 @@ router.get("/:id/upi-qr", authenticate, async (req: AuthRequest, res: Response) 
       return res.status(403).json({ message: "Access denied" });
     }
 
-    const qrDataUrl = await generateUpiQr(order.totalAmount, order.orderNumber);
+    const qrDataUrl = await generateUpiQr(order.totalAmount);
     res.json({
       qrDataUrl,
       upiId: process.env.UPI_ID,
@@ -147,12 +170,49 @@ router.get("/:id/upi-qr", authenticate, async (req: AuthRequest, res: Response) 
   }
 });
 
+// Upload payment proof
+router.post(
+  "/:id/payment-proof",
+  authenticate,
+  upload.single("file"),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const order = await prisma.order.findUnique({ where: { id: req.params.id as string } });
+      if (!order) {
+        return res.status(404).json({ message: "Order not found" });
+      }
+
+      if (order.userId !== req.user!.id && !req.user!.isAdmin) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const imageUrl = await uploadToCloudinary(req.file.buffer);
+      const updatedOrder = await prisma.order.update({
+        where: { id: req.params.id as string },
+        data: { paymentScreenshot: imageUrl },
+      });
+
+      res.json(updatedOrder);
+    } catch (error) {
+      console.error("Upload payment proof error:", error);
+      res.status(500).json({ message: "Failed to upload payment proof" });
+    }
+  }
+);
+
 // Confirm UPI payment
 router.post("/:id/confirm-upi", authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const order = await prisma.order.update({
       where: { id: req.params.id as string },
-      data: { paymentStatus: "PAID" },
+      data: {
+        paymentStatus: "PAID",
+        verifiedAt: new Date(),
+      },
       include: {
         items: { include: { product: true } },
         user: { select: { name: true, email: true } },

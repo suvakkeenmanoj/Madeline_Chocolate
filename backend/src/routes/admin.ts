@@ -105,6 +105,32 @@ router.patch("/orders/:id/status", async (req, res) => {
   }
 });
 
+// Update payment verification status
+router.patch("/orders/:id/payment-status", async (req, res) => {
+  try {
+    const { paymentStatus } = req.body;
+    if (!paymentStatus || !["PAID", "REJECTED"].includes(paymentStatus)) {
+      return res.status(400).json({ message: "Invalid payment status" });
+    }
+
+    const order = await prisma.order.update({
+      where: { id: req.params.id as string },
+      data: {
+        paymentStatus,
+        verifiedAt: paymentStatus === "PAID" ? new Date() : null,
+      },
+      include: {
+        user: { select: { name: true, email: true } },
+        items: { include: { product: true } },
+      },
+    });
+
+    res.json(order);
+  } catch {
+    res.status(500).json({ message: "Failed to update payment status" });
+  }
+});
+
 // Customer management
 router.get("/customers", async (req, res) => {
   try {

@@ -22,7 +22,9 @@ function OrderConfirmationContent() {
   const [order, setOrder] = useState<Order | null>(null);
   const [upiQr, setUpiQr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
+  const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
+  const [submittingProof, setSubmittingProof] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -42,13 +44,27 @@ function OrderConfirmationContent() {
     }
   }, [id, paymentMethod]);
 
-  const handleConfirmUpi = async () => {
+  const handleUploadProof = async () => {
+    if (!paymentProofFile) {
+      toast.error("Please select a payment screenshot");
+      return;
+    }
+
+    setSubmittingProof(true);
     try {
-      await orderApi.confirmUpi(id as string);
-      setPaymentConfirmed(true);
-      toast.success("Payment confirmed! Thank you.");
+      const formData = new FormData();
+      formData.append("file", paymentProofFile);
+      await orderApi.uploadPaymentProof(id as string, formData);
+      toast.success("Payment proof uploaded. Admin will verify it shortly.");
+      setPaymentProofFile(null);
+      setPaymentProofPreview(null);
+      if (order) {
+        setOrder({ ...order, paymentStatus: "PENDING" });
+      }
     } catch {
-      toast.error("Failed to confirm payment");
+      toast.error("Failed to upload payment proof");
+    } finally {
+      setSubmittingProof(false);
     }
   };
 
@@ -141,7 +157,7 @@ function OrderConfirmationContent() {
         </div>
       </div>
 
-      {paymentMethod === "UPI" && upiQr && !paymentConfirmed && (
+      {paymentMethod === "UPI" && upiQr && (
         <div className="bg-card rounded-2xl border border-border p-6 mb-6 text-center">
           <h3 className="font-semibold mb-4">Scan to Pay via UPI</h3>
           <Image
@@ -155,14 +171,46 @@ function OrderConfirmationContent() {
             {formatPrice(order.totalAmount)}
           </p>
           <p className="text-sm text-muted mt-2">
-            After payment, click below to confirm
+            After payment, upload your screenshot and we will verify it manually.
           </p>
-          <button
-            onClick={handleConfirmUpi}
-            className="mt-4 px-6 py-2 bg-primary text-white rounded-full font-medium hover:bg-primary-dark transition-colors"
-          >
-            I Have Paid
-          </button>
+          <div className="mt-4 space-y-3 text-left">
+            <div>
+              <label className="block text-sm font-medium mb-1">UTR Number</label>
+              <input
+                type="text"
+                value={order.utrNumber || ""}
+                readOnly
+                className="w-full px-4 py-3 rounded-xl border border-border bg-background"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Payment Screenshot</label>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  setPaymentProofFile(file);
+                  if (file) {
+                    setPaymentProofPreview(URL.createObjectURL(file));
+                  } else {
+                    setPaymentProofPreview(null);
+                  }
+                }}
+                className="w-full text-sm"
+              />
+              {paymentProofPreview && (
+                <img src={paymentProofPreview} alt="Payment proof preview" className="mt-3 h-32 w-auto rounded-xl border border-border" />
+              )}
+            </div>
+            <button
+              onClick={handleUploadProof}
+              disabled={submittingProof}
+              className="w-full px-6 py-2 bg-primary text-white rounded-full font-medium hover:bg-primary-dark transition-colors disabled:opacity-50"
+            >
+              {submittingProof ? "Uploading..." : "Submit for Verification"}
+            </button>
+          </div>
         </div>
       )}
 

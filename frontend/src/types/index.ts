@@ -66,6 +66,9 @@ export interface Order {
   gstAmount: number;
   paymentMethod: "UPI" | "COD";
   paymentStatus: string;
+  utrNumber?: string | null;
+  paymentScreenshot?: string | null;
+  verifiedAt?: string | null;
   status: string;
   deliveryAddress: string;
   phone: string;

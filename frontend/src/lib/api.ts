@@ -41,6 +41,10 @@ export const orderApi = {
   getById: (id: string) => api.get(`/orders/${id}`),
   getUpiQr: (id: string) => api.get(`/orders/${id}/upi-qr`),
   confirmUpi: (id: string) => api.post(`/orders/${id}/confirm-upi`),
+  uploadPaymentProof: (id: string, formData: FormData) =>
+    api.post(`/orders/${id}/payment-proof`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
   getInvoice: (id: string) =>
     api.get(`/orders/${id}/invoice`, { responseType: "blob" }),
 };
@@ -61,6 +65,8 @@ export const adminApi = {
     api.get("/admin/orders", { params }),
   updateOrderStatus: (id: string, data: object) =>
     api.patch(`/admin/orders/${id}/status`, data),
+  updatePaymentStatus: (id: string, data: object) =>
+    api.patch(`/admin/orders/${id}/payment-status`, data),
   getCustomers: (search?: string) =>
     api.get("/admin/customers", { params: { search } }),
   getAnalytics: (period?: string) =>

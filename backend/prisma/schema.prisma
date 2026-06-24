@@ -52,6 +52,7 @@ enum PaymentMethod {
 enum PaymentStatus {
   PENDING
   PAID
+  REJECTED
   FAILED
 }
 
@@ -82,6 +83,9 @@ model Order {
   gstAmount       Float         @default(0)
   paymentMethod   PaymentMethod
   paymentStatus   PaymentStatus @default(PENDING)
+  utrNumber       String?
+  paymentScreenshot String?
+  verifiedAt      DateTime?
   status          OrderStatus   @default(ORDER_PLACED)
   deliveryAddress String
   phone           String

@@ -55,6 +55,16 @@ function AdminOrdersContent() {
     }
   };
 
+  const updatePaymentStatus = async (orderId: string, paymentStatus: string) => {
+    try {
+      await adminApi.updatePaymentStatus(orderId, { paymentStatus });
+      toast.success("Payment status updated");
+      fetchOrders();
+    } catch {
+      toast.error("Failed to update payment status");
+    }
+  };
+
   const setDeliveryDate = async (orderId: string, date: string) => {
     try {
       await adminApi.updateOrderStatus(orderId, { deliveryDate: date });
@@ -120,6 +130,23 @@ function AdminOrdersContent() {
               {order.deliveryAddress}
             </div>
 
+            <div className="text-sm space-y-2 mb-4">
+              <div>
+                <span className="font-medium">Customer:</span> {order.user?.name} · {order.user?.email}
+              </div>
+              <div>
+                <span className="font-medium">Payment:</span> {order.paymentStatus}
+                {order.utrNumber ? ` · UTR: ${order.utrNumber}` : ""}
+              </div>
+              {order.paymentScreenshot && (
+                <div>
+                  <a href={order.paymentScreenshot} target="_blank" rel="noreferrer" className="text-primary hover:text-accent">
+                    View payment screenshot
+                  </a>
+                </div>
+              )}
+            </div>
+
             <div className="text-sm mb-4">
               {order.items.map((item) => (
                 <span key={item.id} className="mr-3">
@@ -129,6 +156,22 @@ function AdminOrdersContent() {
             </div>
 
             <div className="flex flex-wrap gap-3 items-center">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => updatePaymentStatus(order.id, "PAID")}
+                  className="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
+                >
+                  Mark Paid
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updatePaymentStatus(order.id, "REJECTED")}
+                  className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700"
+                >
+                  Reject Payment
+                </button>
+              </div>
               <select
                 value={order.status}
                 onChange={(e) => updateStatus(order.id, e.target.value)}

@@ -59,8 +59,11 @@ export default function OrdersPage() {
                 </span>
               </div>
               <div className="text-xs text-muted mt-2">
-                {order.items.length} item(s) · {order.paymentMethod}
+                {order.items.length} item(s) · {order.paymentMethod} · {order.paymentStatus}
               </div>
+              {order.utrNumber && (
+                <div className="text-xs text-muted mt-1">UTR: {order.utrNumber}</div>
+              )}
             </Link>
           ))}
         </div>

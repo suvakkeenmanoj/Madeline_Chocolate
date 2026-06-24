@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { CreditCard, Banknote } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
@@ -16,6 +15,9 @@ export default function CheckoutPage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"UPI" | "COD">("COD");
+  const [utrNumber, setUtrNumber] = useState("");
+  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
+  const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -28,6 +30,13 @@ export default function CheckoutPage() {
 
   const gst = Math.round(subtotal * 0.05 * 100) / 100;
   const grandTotal = subtotal + gst;
+  const upiId = process.env.NEXT_PUBLIC_UPI_ID || "sangibregit94@okicici";
+  const upiName = process.env.NEXT_PUBLIC_UPI_NAME || "SANGEETHA BREGIT A";
+  const upiQrUrl = paymentMethod === "UPI"
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(
+        `upi://pay?pa=${upiId}&pn=${encodeURIComponent(upiName)}&am=${grandTotal.toFixed(2)}&cu=INR`
+      )}`
+    : "";
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -65,6 +74,11 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (paymentMethod === "UPI" && (!utrNumber || utrNumber.trim().length < 4)) {
+      toast.error("Please enter a valid UPI transaction ID (UTR)");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const { data: order } = await orderApi.create({
@@ -81,9 +95,17 @@ export default function CheckoutPage() {
         state: form.state,
         pincode: form.pincode,
         applyGst: true,
+        utrNumber: paymentMethod === "UPI" ? utrNumber.trim() : undefined,
       });
 
+      if (paymentMethod === "UPI" && paymentProofFile) {
+        const formData = new FormData();
+        formData.append("file", paymentProofFile);
+        await orderApi.uploadPaymentProof(order.id, formData);
+      }
+
       clearCart();
+      toast.success("Order placed successfully");
       router.push(`/order-confirmation/${order.id}?payment=${paymentMethod}`);
     } catch {
       toast.error("Failed to place order. Please try again.");
@@ -240,6 +262,62 @@ export default function CheckoutPage() {
                 </div>
               </button>
             </div>
+
+            {paymentMethod === "UPI" && (
+              <div className="mt-6 rounded-2xl border border-accent/30 bg-accent-light/20 p-5">
+                <div className="flex flex-col lg:flex-row gap-6 items-start">
+                  <div className="flex-1 text-center lg:text-left">
+                    <h3 className="font-semibold text-primary-dark mb-3">Pay via UPI</h3>
+                    <div className="inline-flex items-center justify-center rounded-2xl border border-border bg-white p-4 shadow-sm">
+                      <img src={upiQrUrl} alt="UPI QR code" className="w-56 h-56 object-contain" />
+                    </div>
+                    <p className="text-sm text-muted mt-3">Scan the QR code with any UPI app</p>
+                  </div>
+                  <div className="flex-1 w-full space-y-4">
+                    <div className="rounded-xl border border-border bg-background/80 p-3 text-left">
+                      <p className="text-sm font-semibold text-primary-dark">Pay To</p>
+                      <p className="text-sm text-muted">{upiName}</p>
+                      <p className="text-sm font-semibold text-primary-dark mt-2">UPI ID</p>
+                      <p className="text-sm text-muted">{upiId}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted">Amount</p>
+                      <p className="font-semibold text-accent">{formatPrice(grandTotal)}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">UPI Transaction ID (UTR) *</label>
+                      <input
+                        type="text"
+                        value={utrNumber}
+                        onChange={(e) => setUtrNumber(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+                        placeholder="Enter UTR after payment"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Payment Screenshot (optional)</label>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setPaymentProofFile(file);
+                          if (file) {
+                            setPaymentProofPreview(URL.createObjectURL(file));
+                          } else {
+                            setPaymentProofPreview(null);
+                          }
+                        }}
+                        className="w-full text-sm"
+                      />
+                      {paymentProofPreview && (
+                        <img src={paymentProofPreview} alt="Payment proof preview" className="mt-3 h-32 w-auto rounded-xl border border-border" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
