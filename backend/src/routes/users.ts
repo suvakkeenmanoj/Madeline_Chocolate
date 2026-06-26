@@ -1,6 +1,7 @@
 import { Router, Response } from "express";
 import prisma from "../lib/prisma";
 import { authenticate, AuthRequest } from "../middleware/auth";
+import { validatePhone } from "../utils/validation";
 
 const router = Router();
 
@@ -29,6 +30,11 @@ router.get("/profile", authenticate, async (req: AuthRequest, res: Response) => 
 router.put("/profile", authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { name, phone, address, city, state, pincode } = req.body;
+    const phoneError = validatePhone(phone || "");
+    if (phoneError) {
+      return res.status(400).json({ message: phoneError });
+    }
+
     const user = await prisma.user.update({
       where: { id: req.user!.id },
       data: { name, phone, address, city, state, pincode },

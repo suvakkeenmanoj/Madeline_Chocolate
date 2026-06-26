@@ -5,6 +5,7 @@ import { Router, Response } from "express";
 import prisma from "../lib/prisma";
 import { authenticate, AuthRequest } from "../middleware/auth";
 import { sendPasswordResetEmail } from "../utils/email";
+import { validateEmail, validatePhone } from "../utils/validation";
 
 const router = Router();
 
@@ -21,6 +22,17 @@ router.post("/register", async (req, res) => {
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Name, email, and password are required" });
     }
+
+    const emailError = validateEmail(email);
+    if (emailError) {
+      return res.status(400).json({ message: emailError });
+    }
+
+    const phoneError = validatePhone(phone || "");
+    if (phoneError) {
+      return res.status(400).json({ message: phoneError });
+    }
+
     if (password !== confirmPassword) {
       return res.status(400).json({ message: "Passwords do not match" });
     }
@@ -66,6 +78,11 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Email and password are required" });
     }
 
+    const emailError = validateEmail(email);
+    if (emailError) {
+      return res.status(400).json({ message: emailError });
+    }
+
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ message: "Invalid email or password" });
@@ -84,6 +101,11 @@ router.post("/login", async (req, res) => {
 router.post("/forgot-password", async (req, res) => {
   try {
     const { email } = req.body;
+    const emailError = validateEmail(email);
+    if (emailError) {
+      return res.status(400).json({ message: emailError });
+    }
+
     const user = await prisma.user.findUnique({ where: { email } });
 
     // Always return success to prevent email enumeration

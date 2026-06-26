@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { validateEmail } from "@/lib/validation";
 import toast from "react-hot-toast";
 
 function LoginForm() {
@@ -14,9 +15,15 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const nextEmailError = validateEmail(email);
+    setEmailError(nextEmailError || "");
+    if (nextEmailError) {
+      return;
+    }
     setLoading(true);
     try {
       await login(email, password);
