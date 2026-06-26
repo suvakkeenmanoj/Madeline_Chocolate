@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { orderApi, userApi } from "@/lib/api";
 import { formatPrice } from "@/lib/utils";
+import { validateEmail, validatePhone } from "@/lib/validation";
 import toast from "react-hot-toast";
 
 export default function CheckoutPage() {
@@ -27,6 +28,7 @@ export default function CheckoutPage() {
     state: "",
     pincode: "",
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const gst = Math.round(subtotal * 0.05 * 100) / 100;
   const grandTotal = subtotal + gst;
@@ -69,8 +71,18 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.deliveryAddress || !form.phone) {
-      toast.error("Please fill in your name, email, delivery address, and phone number");
+    const nextErrors: Record<string, string> = {};
+
+    if (!form.name) nextErrors.name = "Customer name is required.";
+    if (!form.deliveryAddress) nextErrors.deliveryAddress = "Delivery address is required.";
+
+    const emailError = validateEmail(form.email);
+    const phoneError = validatePhone(form.phone);
+    if (emailError) nextErrors.email = emailError;
+    if (phoneError) nextErrors.phone = phoneError;
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
       return;
     }
 
@@ -140,9 +152,13 @@ export default function CheckoutPage() {
                     required
                     type="text"
                     value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    onChange={(e) => {
+                      setForm({ ...form, name: e.target.value });
+                      if (errors.name) setErrors((prev) => ({ ...prev, name: "" }));
+                    }}
                     className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
                   />
+                  {errors.name ? <p className="text-sm text-red-600 mt-1">{errors.name}</p> : null}
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">
@@ -152,9 +168,13 @@ export default function CheckoutPage() {
                     required
                     type="email"
                     value={form.email}
-                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    onChange={(e) => {
+                      setForm({ ...form, email: e.target.value });
+                      if (errors.email) setErrors((prev) => ({ ...prev, email: "" }));
+                    }}
                     className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
                   />
+                  {errors.email ? <p className="text-sm text-red-600 mt-1">{errors.email}</p> : null}
                 </div>
               </div>
               <div>
@@ -165,12 +185,14 @@ export default function CheckoutPage() {
                   required
                   rows={3}
                   value={form.deliveryAddress}
-                  onChange={(e) =>
-                    setForm({ ...form, deliveryAddress: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setForm({ ...form, deliveryAddress: e.target.value });
+                    if (errors.deliveryAddress) setErrors((prev) => ({ ...prev, deliveryAddress: "" }));
+                  }}
                   className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
                   placeholder="House/Flat No, Street, Area"
                 />
+                {errors.deliveryAddress ? <p className="text-sm text-red-600 mt-1">{errors.deliveryAddress}</p> : null}
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
@@ -181,11 +203,13 @@ export default function CheckoutPage() {
                     required
                     type="tel"
                     value={form.phone}
-                    onChange={(e) =>
-                      setForm({ ...form, phone: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setForm({ ...form, phone: e.target.value });
+                      if (errors.phone) setErrors((prev) => ({ ...prev, phone: "" }));
+                    }}
                     className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
                   />
+                  {errors.phone ? <p className="text-sm text-red-600 mt-1">{errors.phone}</p> : null}
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">

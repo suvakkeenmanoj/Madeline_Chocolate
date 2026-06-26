@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { userApi } from "@/lib/api";
+import { validatePhone } from "@/lib/validation";
 import toast from "react-hot-toast";
 
 export default function ProfilePage() {
@@ -18,6 +19,7 @@ export default function ProfilePage() {
     state: "",
     pincode: "",
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!loading && !user) router.push("/login");
@@ -38,6 +40,15 @@ export default function ProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const phoneError = validatePhone(form.phone);
+    const nextErrors: Record<string, string> = {};
+    if (phoneError) nextErrors.phone = phoneError;
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      return;
+    }
+
     setSaving(true);
     try {
       await userApi.updateProfile(form);
@@ -81,11 +92,17 @@ export default function ProfilePage() {
             <input
               type="text"
               value={form[field.name as keyof typeof form]}
-              onChange={(e) =>
-                setForm({ ...form, [field.name]: e.target.value })
-              }
+              onChange={(e) => {
+                setForm({ ...form, [field.name]: e.target.value });
+                if (errors[field.name]) {
+                  setErrors((prev) => ({ ...prev, [field.name]: "" }));
+                }
+              }}
               className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
             />
+            {errors[field.name] ? (
+              <p className="text-sm text-red-600 mt-1">{errors[field.name]}</p>
+            ) : null}
           </div>
         ))}
         <button

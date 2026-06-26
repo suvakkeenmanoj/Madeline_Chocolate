@@ -6,6 +6,7 @@ import { generateUpiQr } from "../utils/upi";
 import { generateInvoicePdf } from "../utils/pdf";
 import { sendOrderConfirmationEmail } from "../utils/email";
 import { uploadToCloudinary } from "../utils/cloudinary";
+import { validateEmail, validatePhone } from "../utils/validation";
 
 const router = Router();
 
@@ -47,6 +48,11 @@ router.post("/", authenticate, async (req: AuthRequest, res: Response) => {
 
     if (!items?.length || !paymentMethod || !deliveryAddress || !phone) {
       return res.status(400).json({ message: "Missing required order fields" });
+    }
+
+    const phoneError = validatePhone(phone);
+    if (phoneError) {
+      return res.status(400).json({ message: phoneError });
     }
 
     if (paymentMethod === "UPI") {

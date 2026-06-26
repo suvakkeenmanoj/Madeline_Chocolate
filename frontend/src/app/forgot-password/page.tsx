@@ -3,15 +3,22 @@
 import { useState } from "react";
 import Link from "next/link";
 import { authApi } from "@/lib/api";
+import { validateEmail } from "@/lib/validation";
 import toast from "react-hot-toast";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const nextEmailError = validateEmail(email);
+    setEmailError(nextEmailError || "");
+    if (nextEmailError) {
+      return;
+    }
     setLoading(true);
     try {
       await authApi.forgotPassword(email);
@@ -58,9 +65,13 @@ export default function ForgotPasswordPage() {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (emailError) setEmailError("");
+                }}
                 className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
               />
+              {emailError ? <p className="text-sm text-red-600 mt-1">{emailError}</p> : null}
             </div>
             <button
               type="submit"
