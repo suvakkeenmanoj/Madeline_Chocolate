@@ -140,12 +140,12 @@ export default function CheckoutPage() {
 
       <form onSubmit={handleSubmit} className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-card rounded-2xl border border-border p-6">
+          <div className="surface-card p-6">
             <h2 className="text-lg font-bold mb-4">Delivery Details</h2>
             <div className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="block text-sm font-medium mb-1 text-foreground/85">
                     Customer Name *
                   </label>
                   <input
@@ -156,7 +156,7 @@ export default function CheckoutPage() {
                       setForm({ ...form, name: e.target.value });
                       if (errors.name) setErrors((prev) => ({ ...prev, name: "" }));
                     }}
-                    className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+                    className="input-base"
                   />
                   {errors.name ? <p className="text-sm text-red-600 mt-1">{errors.name}</p> : null}
                 </div>
@@ -172,7 +172,7 @@ export default function CheckoutPage() {
                       setForm({ ...form, email: e.target.value });
                       if (errors.email) setErrors((prev) => ({ ...prev, email: "" }));
                     }}
-                    className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+                    className="input-base"
                   />
                   {errors.email ? <p className="text-sm text-red-600 mt-1">{errors.email}</p> : null}
                 </div>
@@ -189,7 +189,7 @@ export default function CheckoutPage() {
                     setForm({ ...form, deliveryAddress: e.target.value });
                     if (errors.deliveryAddress) setErrors((prev) => ({ ...prev, deliveryAddress: "" }));
                   }}
-                  className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="input-base min-h-[120px] resize-none"
                   placeholder="House/Flat No, Street, Area"
                 />
                 {errors.deliveryAddress ? <p className="text-sm text-red-600 mt-1">{errors.deliveryAddress}</p> : null}
@@ -207,7 +207,7 @@ export default function CheckoutPage() {
                       setForm({ ...form, phone: e.target.value });
                       if (errors.phone) setErrors((prev) => ({ ...prev, phone: "" }));
                     }}
-                    className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+                    className="input-base"
                   />
                   {errors.phone ? <p className="text-sm text-red-600 mt-1">{errors.phone}</p> : null}
                 </div>
@@ -221,7 +221,7 @@ export default function CheckoutPage() {
                     onChange={(e) =>
                       setForm({ ...form, pincode: e.target.value })
                     }
-                    className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+                    className="input-base"
                   />
                 </div>
               </div>
@@ -234,7 +234,7 @@ export default function CheckoutPage() {
                     onChange={(e) =>
                       setForm({ ...form, city: e.target.value })
                     }
-                    className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+                    className="input-base"
                   />
                 </div>
                 <div>
@@ -245,7 +245,7 @@ export default function CheckoutPage() {
                     onChange={(e) =>
                       setForm({ ...form, state: e.target.value })
                     }
-                    className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+                    className="input-base"
                   />
                 </div>
               </div>
@@ -292,13 +292,13 @@ export default function CheckoutPage() {
                 <div className="flex flex-col lg:flex-row gap-6 items-start">
                   <div className="flex-1 text-center lg:text-left">
                     <h3 className="font-semibold text-primary-dark mb-3">Pay via UPI</h3>
-                    <div className="inline-flex items-center justify-center rounded-2xl border border-border bg-white p-4 shadow-sm">
+                    <div className="inline-flex items-center justify-center rounded-2xl border border-border bg-surface p-4 shadow-sm">
                       <img src={upiQrUrl} alt="UPI QR code" className="w-56 h-56 object-contain" />
                     </div>
                     <p className="text-sm text-muted mt-3">Scan the QR code with any UPI app</p>
                   </div>
                   <div className="flex-1 w-full space-y-4">
-                    <div className="rounded-xl border border-border bg-background/80 p-3 text-left">
+                    <div className="rounded-xl border border-border bg-surface/80 p-3 text-left">
                       <p className="text-sm font-semibold text-primary-dark">Pay To</p>
                       <p className="text-sm text-muted">{upiName}</p>
                       <p className="text-sm font-semibold text-primary-dark mt-2">UPI ID</p>

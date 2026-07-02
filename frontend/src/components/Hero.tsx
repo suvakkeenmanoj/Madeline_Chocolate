@@ -3,7 +3,7 @@ import { ArrowRight, Gift, Sparkles } from "lucide-react";
 
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary-dark via-primary to-primary-dark text-white">
+    <section className="hero-section overflow-hidden bg-gradient-to-br from-primary-dark via-primary to-primary-dark dark:from-[#2b1a11] dark:via-[#4b3627] dark:to-[#2b1a11] text-white">
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-10 left-10 text-6xl animate-float">🍫</div>
         <div className="absolute top-32 right-20 text-4xl animate-float" style={{ animationDelay: "1s" }}>🎁</div>
@@ -41,7 +41,7 @@ export default function Hero() {
             </Link>
             <Link
               href="/catalog"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur text-white font-semibold rounded-full hover:bg-white/20 transition-all border border-white/20"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-surface-strong/15 backdrop-blur text-white font-semibold rounded-full hover:bg-surface-strong/25 transition-all border border-surface-strong/30"
             >
               Shop Now
             </Link>

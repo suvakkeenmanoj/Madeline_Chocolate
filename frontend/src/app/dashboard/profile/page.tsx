@@ -65,18 +65,18 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
-      <h1 className="text-2xl font-bold text-primary-dark mb-6">My Profile</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">My Profile</h1>
       <form
         onSubmit={handleSubmit}
-        className="bg-card rounded-2xl border border-border p-6 space-y-4"
+        className="surface-card p-6 space-y-4"
       >
         <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
+          <label className="block text-sm font-medium mb-1 text-foreground/85">Email</label>
           <input
             type="email"
             disabled
             value={user.email}
-            className="w-full px-4 py-3 rounded-xl border border-border bg-background/50 text-muted"
+            className="input-base bg-surface/50 text-muted cursor-not-allowed"
           />
         </div>
         {[
@@ -98,7 +98,7 @@ export default function ProfilePage() {
                   setErrors((prev) => ({ ...prev, [field.name]: "" }));
                 }
               }}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+              className="input-base"
             />
             {errors[field.name] ? (
               <p className="text-sm text-red-600 mt-1">{errors[field.name]}</p>
@@ -108,7 +108,7 @@ export default function ProfilePage() {
         <button
           type="submit"
           disabled={saving}
-          className="w-full py-3 bg-primary text-white rounded-full font-semibold hover:bg-primary-dark transition-colors disabled:opacity-50"
+          className="w-full py-3 btn-primary hover:bg-primary-dark disabled:opacity-50"
         >
           {saving ? "Saving..." : "Save Profile"}
         </button>

@@ -56,13 +56,13 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <span className="text-4xl">🍫</span>
-          <h1 className="text-2xl font-bold text-primary-dark mt-2">Create Account</h1>
+          <h1 className="text-2xl font-bold text-foreground mt-2">Create Account</h1>
           <p className="text-muted text-sm mt-1">Join Madeline_chocolate today</p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="bg-card rounded-2xl border border-border p-6 space-y-4"
+          className="surface-card p-6 space-y-4"
         >
           {[
             { name: "name", label: "Full Name", type: "text" },
@@ -72,7 +72,7 @@ export default function RegisterPage() {
             { name: "confirmPassword", label: "Confirm Password", type: "password" },
           ].map((field) => (
             <div key={field.name}>
-              <label className="block text-sm font-medium mb-1">{field.label}</label>
+              <label className="block text-sm font-medium mb-1 text-foreground/85">{field.label}</label>
               <input
                 type={field.type}
                 required
@@ -83,17 +83,17 @@ export default function RegisterPage() {
                     setErrors((prev) => ({ ...prev, [field.name]: "" }));
                   }
                 }}
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+                className="input-base"
               />
               {errors[field.name] ? (
-                <p className="text-sm text-red-600 mt-1">{errors[field.name]}</p>
+                <p className="text-sm text-red-500 mt-1">{errors[field.name]}</p>
               ) : null}
             </div>
           ))}
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-primary text-white rounded-full font-semibold hover:bg-primary-dark transition-colors disabled:opacity-50"
+            className="w-full py-3 btn-primary hover:bg-primary-dark disabled:opacity-50"
           >
             {loading ? "Creating Account..." : "Register"}
           </button>
@@ -101,7 +101,7 @@ export default function RegisterPage() {
 
         <p className="text-center text-sm text-muted mt-6">
           Already have an account?{" "}
-          <Link href="/login" className="text-primary font-medium hover:text-accent">
+          <Link href="/login" className="text-accent font-medium hover:text-accent-light transition-colors">
             Login
           </Link>
         </p>
