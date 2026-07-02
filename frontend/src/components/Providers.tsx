@@ -21,9 +21,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             position="bottom-center"
             toastOptions={{
               style: {
-                background: "var(--card)",
+                background: "var(--surface)",
                 color: "var(--foreground)",
                 border: "1px solid var(--border)",
+                boxShadow: "var(--shadow)",
               },
             }}
           />

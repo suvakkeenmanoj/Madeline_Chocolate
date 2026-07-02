@@ -5,30 +5,38 @@
 :root {
   --background: #fdf8f3;
   --foreground: #3e2723;
+  --surface: #ffffff;
+  --surface-strong: #faf4ef;
   --primary: #5d4037;
   --primary-dark: #3e2723;
   --accent: #d4af37;
   --accent-light: #f5e6a3;
   --card: #ffffff;
-  --muted: #8d6e63;
-  --border: #efebe9;
+  --muted: #7b5e57;
+  --border: #e8e0da;
+  --shadow: 0 20px 50px rgba(17, 17, 17, 0.08);
 }
 
 .dark {
-  --background: #1a1210;
-  --foreground: #efebe9;
-  --primary: #a1887f;
-  --primary-dark: #d7ccc8;
+  --background: #120b0a;
+  --foreground: #ede6dd;
+  --surface: #1f1713;
+  --surface-strong: #2c2018;
+  --primary: #bf9c6b;
+  --primary-dark: #efe8dd;
   --accent: #d4af37;
-  --accent-light: #5d4037;
-  --card: #2c2018;
-  --muted: #bcaaa4;
-  --border: #3e2723;
+  --accent-light: #4f3828;
+  --card: #1f1713;
+  --muted: #b6a294;
+  --border: #3a2b23;
+  --shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
   --color-primary: var(--primary);
   --color-primary-dark: var(--primary-dark);
   --color-accent: var(--accent);
@@ -39,10 +47,170 @@
   --font-sans: var(--font-geist-sans);
 }
 
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
+  min-height: 100vh;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+img,
+video,
+svg,
+canvas {
+  display: block;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(212, 175, 55, 0.25);
+  color: var(--foreground);
+}
+
+@layer utilities {
+  .surface-card {
+    background-color: var(--color-card);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow);
+    border-radius: 28px;
+  }
+
+  .hero-section {
+    position: relative;
+  }
+
+  .hero-section::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.22));
+    pointer-events: none;
+  }
+
+  .dark .hero-section::before {
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.45));
+  }
+
+  .surface-panel {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 28px;
+  }
+
+  .surface-soft {
+    background-color: var(--color-surface-strong);
+    border: 1px solid var(--color-border);
+    border-radius: 28px;
+  }
+
+  .special-event-section {
+    position: relative;
+  }
+
+  .dark .special-event-section,
+  [data-theme='dark'] .special-event-section {
+    background-color: #121212;
+    background-image: linear-gradient(90deg, #161616 0%, #2b2018 100%);
+  }
+
+  .dark .special-event-section h2,
+  [data-theme='dark'] .special-event-section h2 {
+    color: #ffffff;
+  }
+
+  .dark .special-event-section p,
+  [data-theme='dark'] .special-event-section p {
+    color: #dcd4c8;
+  }
+
+  .input-base {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-surface);
+    color: var(--foreground);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .input-base:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.16);
+    border-color: var(--accent);
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-whatsapp {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    font-weight: 600;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    text-decoration: none;
+  }
+
+  .btn-primary {
+    background-color: var(--color-primary);
+    color: white;
+  }
+
+  .btn-secondary {
+    background-color: var(--color-accent);
+    color: var(--color-primary-dark);
+  }
+
+  .btn-whatsapp {
+    background-color: #25d366;
+    color: white;
+  }
+
+  .btn-primary:hover,
+  .btn-secondary:hover,
+  .btn-whatsapp:hover {
+    transform: translateY(-1px);
+  }
+
+  .text-muted {
+    color: var(--color-muted);
+  }
+
+  .text-muted {
+    color: var(--color-muted);
+  }
 }
 
 @keyframes fade-in-up {
