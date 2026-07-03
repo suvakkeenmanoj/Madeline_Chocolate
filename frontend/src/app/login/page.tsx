@@ -40,43 +40,43 @@ function LoginForm() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <span className="text-4xl">🍫</span>
-          <h1 className="text-2xl font-bold text-primary-dark mt-2">Welcome Back</h1>
+          <h1 className="text-2xl font-bold text-foreground mt-2">Welcome Back</h1>
           <p className="text-muted text-sm mt-1">Login to your Madeline_chocolate account</p>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="bg-card rounded-2xl border border-border p-6 space-y-4"
+          className="surface-card p-6 space-y-4"
         >
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
+            <label className="block text-sm font-medium mb-1 text-foreground/85">Email</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+              className="input-base"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
+            <label className="block text-sm font-medium mb-1 text-foreground/85">Password</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+              className="input-base"
             />
           </div>
           <div className="text-right">
-            <Link href="/forgot-password" className="text-sm text-primary hover:text-accent">
+            <Link href="/forgot-password" className="text-accent font-medium hover:text-accent-light transition-colors">
               Forgot Password?
             </Link>
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-primary text-white rounded-full font-semibold hover:bg-primary-dark transition-colors disabled:opacity-50"
+            className="w-full py-3 btn-primary hover:bg-primary-dark disabled:opacity-50"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
@@ -84,7 +84,7 @@ function LoginForm() {
 
         <p className="text-center text-sm text-muted mt-6">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-primary font-medium hover:text-accent">
+          <Link href="/register" className="text-accent font-medium hover:text-accent-light transition-colors">
             Register
           </Link>
         </p>

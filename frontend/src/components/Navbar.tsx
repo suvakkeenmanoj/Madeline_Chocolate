@@ -33,7 +33,7 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-16 gap-4">
           <Link href="/" className="flex items-center gap-2 group">
             <span className="text-2xl">🍫</span>
             <span className="font-bold text-lg text-primary-dark group-hover:text-accent transition-colors">
@@ -56,7 +56,7 @@ export default function Navbar() {
           <div className="flex items-center gap-2">
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-accent-light/30 transition-colors"
+              className="p-2 rounded-full hover:bg-accent-light/25 transition-colors focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
               aria-label="Toggle theme"
             >
               {theme === "dark" ? (
@@ -129,7 +129,7 @@ export default function Navbar() {
 
       <div
         className={cn(
-          "md:hidden overflow-hidden transition-all duration-300 bg-card border-b border-border",
+          "md:hidden overflow-hidden transition-all duration-300 surface-card",
           mobileOpen ? "max-h-96" : "max-h-0"
         )}
       >
@@ -138,7 +138,7 @@ export default function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className="block py-2 text-muted hover:text-primary-dark"
+              className="block py-2 text-muted hover:text-primary-dark transition-colors"
               onClick={() => setMobileOpen(false)}
             >
               {link.label}

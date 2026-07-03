@@ -67,7 +67,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         <button
           onClick={handleWishlist}
-          className="absolute top-3 right-3 p-2 bg-white/90 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent hover:text-white"
+          className="absolute top-3 right-3 p-2 bg-surface-strong/95 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent hover:text-white focus-visible:ring-2 focus-visible:ring-accent"
         >
           <Heart className="w-4 h-4" />
         </button>

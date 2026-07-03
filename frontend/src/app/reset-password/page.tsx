@@ -46,26 +46,26 @@ function ResetPasswordForm() {
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
-        <h1 className="text-2xl font-bold text-primary-dark text-center mb-6">
+        <h1 className="text-2xl font-bold text-foreground text-center mb-6">
           Reset Password
         </h1>
         <form
           onSubmit={handleSubmit}
-          className="bg-card rounded-2xl border border-border p-6 space-y-4"
+          className="surface-card p-6 space-y-4"
         >
           <div>
-            <label className="block text-sm font-medium mb-1">New Password</label>
+            <label className="block text-sm font-medium mb-1 text-foreground/85">New Password</label>
             <input
               type="password"
               required
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+              className="input-base"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-sm font-medium mb-1 text-foreground/85">
               Confirm Password
             </label>
             <input
@@ -73,13 +73,13 @@ function ResetPasswordForm() {
               required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+              className="input-base"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-primary text-white rounded-full font-semibold hover:bg-primary-dark transition-colors disabled:opacity-50"
+            className="w-full py-3 btn-primary hover:bg-primary-dark disabled:opacity-50"
           >
             {loading ? "Resetting..." : "Reset Password"}
           </button>

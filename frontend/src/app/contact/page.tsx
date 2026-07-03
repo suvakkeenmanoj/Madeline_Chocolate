@@ -36,13 +36,13 @@ export default function ContactPage() {
           ].map(({ icon: Icon, title, content, href }) => (
             <div
               key={title}
-              className="flex items-start gap-4 p-5 bg-card rounded-2xl border border-border"
+              className="flex items-start gap-4 p-5 surface-card"
             >
-              <div className="p-2 bg-accent-light/30 rounded-full">
-                <Icon className="w-5 h-5 text-primary" />
+              <div className="p-3 bg-accent-light/20 rounded-2xl text-primary">
+                <Icon className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-semibold">{title}</h3>
+                <h3 className="font-semibold text-foreground">{title}</h3>
                 {href ? (
                   <a href={href} className="text-sm text-muted hover:text-accent transition-colors">
                     {content}
@@ -55,35 +55,35 @@ export default function ContactPage() {
           ))}
         </div>
 
-        <div className="bg-card rounded-2xl border border-border p-6">
+        <div className="surface-card p-6">
           <h2 className="text-lg font-bold mb-4">Send a Message</h2>
           <form className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Name</label>
+              <label className="block text-sm font-medium mb-1 text-foreground/85">Name</label>
               <input
                 type="text"
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+                className="input-base"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Email</label>
+              <label className="block text-sm font-medium mb-1 text-foreground/85">Email</label>
               <input
                 type="email"
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+                className="input-base"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Message</label>
+              <label className="block text-sm font-medium mb-1 text-foreground/85">Message</label>
               <textarea
                 rows={4}
-                className="w-full px-4 py-3 rounded-xl border border-border bg-background focus:outline-none focus:ring-2 focus:ring-accent"
+                className="input-base min-h-[140px] resize-none"
               />
             </div>
             <a
               href="https://wa.me/919876543210"
               target="_blank"
               rel="noopener noreferrer"
-              className="block w-full py-3 bg-[#25D366] text-white text-center rounded-full font-semibold hover:opacity-90 transition-opacity"
+              className="block w-full py-3 btn-whatsapp text-center font-semibold hover:opacity-90 transition-opacity"
             >
               Send via WhatsApp
             </a>
