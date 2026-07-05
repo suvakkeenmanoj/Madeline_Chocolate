@@ -8,22 +8,23 @@ datasource db {
 }
 
 model User {
-  id           String               @id @default(cuid())
-  name         String
-  email        String               @unique
-  phone        String?
-  password     String
-  address      String?
-  city         String?
-  state        String?
-  pincode      String?
-  isAdmin      Boolean              @default(false)
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
-  orders       Order[]
-  reviews      Review[]
-  resetTokens  PasswordResetToken[]
-  wishlist     WishlistItem[]
+  id                  String               @id @default(cuid())
+  name                String
+  email               String               @unique
+  phone               String?
+  password            String
+  address             String?
+  city                String?
+  state               String?
+  pincode             String?
+  isAdmin             Boolean              @default(false)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  orders              Order[]
+  reviews             Review[]
+  resetTokens         PasswordResetToken[]
+  wishlist            WishlistItem[]
+  notifications       Notification[]
 }
 
 model PasswordResetToken {
@@ -54,6 +55,10 @@ enum PaymentStatus {
   PAID
   REJECTED
   FAILED
+  COD_PENDING
+  COD_CONFIRMED
+  REFUND_INITIATED
+  REFUND_COMPLETED
 }
 
 model Product {
@@ -75,27 +80,32 @@ model Product {
 }
 
 model Order {
-  id              String        @id @default(cuid())
-  orderNumber     String        @unique
-  userId          String
-  user            User          @relation(fields: [userId], references: [id])
-  totalAmount     Float
-  gstAmount       Float         @default(0)
-  paymentMethod   PaymentMethod
-  paymentStatus   PaymentStatus @default(PENDING)
-  utrNumber       String?
-  paymentScreenshot String?
-  verifiedAt      DateTime?
-  status          OrderStatus   @default(ORDER_PLACED)
-  deliveryAddress String
-  phone           String
-  city            String?
-  state           String?
-  pincode         String?
-  deliveryDate    DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  items           OrderItem[]
+  id                  String                @id @default(cuid())
+  orderNumber         String                @unique
+  userId              String
+  user                User                  @relation(fields: [userId], references: [id])
+  totalAmount         Float
+  gstAmount           Float                 @default(0)
+  paymentMethod       PaymentMethod
+  paymentStatus       PaymentStatus         @default(PENDING)
+  utrNumber           String?
+  paymentScreenshot   String?
+  verifiedAt          DateTime?
+  status              OrderStatus           @default(ORDER_PLACED)
+  deliveryAddress     String
+  phone               String
+  city                String?
+  state               String?
+  pincode             String?
+  deliveryDate        DateTime?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  items               OrderItem[]
+  notifications       Notification[]
+  messages            OrderMessage[]
+  statusHistory       OrderStatusHistory[]
+  paymentVerification PaymentVerification?
+  tracking            Tracking?
 }
 
 model OrderItem {
@@ -120,6 +130,67 @@ model Review {
   review    String?
   image     String?
   createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  orderId   String?
+  title     String
+  message   String
+  type      String   @default("INFO")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model OrderMessage {
+  id         String   @id @default(cuid())
+  orderId    String
+  senderType String
+  senderId   String
+  message    String
+  attachment String?
+  createdAt  DateTime @default(now())
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model OrderStatusHistory {
+  id        String   @id @default(cuid())
+  orderId   String
+  status    String
+  message   String?
+  updatedBy String?
+  createdAt DateTime @default(now())
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model PaymentVerification {
+  id                  String    @id @default(cuid())
+  orderId             String    @unique
+  verificationStatus  String    @default("PENDING")
+  verifiedBy          String?
+  verificationDate    DateTime?
+  rejectionReason     String?
+  screenshotRequested Boolean   @default(false)
+  paymentScreenshot   String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  order               Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Tracking {
+  id               String    @id @default(cuid())
+  orderId          String    @unique
+  courierName      String?
+  trackingNumber   String?
+  trackingLink     String?
+  expectedDelivery DateTime?
+  deliveryNotes    String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  order            Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 model WishlistItem {
