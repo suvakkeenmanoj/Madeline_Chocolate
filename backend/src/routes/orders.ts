@@ -51,6 +51,10 @@ router.post("/", authenticate, async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: "Missing required order fields" });
     }
 
+    if (req.user?.isAdmin) {
+      return res.status(403).json({ message: "Admin accounts cannot place customer orders" });
+    }
+
     const phoneError = validatePhone(phone);
     if (phoneError) {
       return res.status(400).json({ message: phoneError });

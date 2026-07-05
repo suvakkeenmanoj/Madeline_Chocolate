@@ -47,6 +47,13 @@ export default function CheckoutPage() {
   }, [user, authLoading, router]);
 
   useEffect(() => {
+    if (!authLoading && user?.isAdmin) {
+      toast.error("Admin accounts cannot place customer orders.");
+      router.replace("/admin");
+    }
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
     if (user) {
       userApi.getProfile().then(({ data }) => {
         setForm((prev) => ({
@@ -130,6 +137,15 @@ export default function CheckoutPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center">
         Loading checkout...
+      </div>
+    );
+  }
+
+  if (user.isAdmin) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
+        <h1 className="text-2xl font-bold text-primary-dark mb-2">Access restricted</h1>
+        <p className="text-muted">Admin accounts cannot place customer orders.</p>
       </div>
     );
   }
