@@ -1,13 +1,6 @@
 import { Router, Response } from "express";
 import prisma from "../lib/prisma";
 import { authenticate, requireAdmin, AuthRequest } from "../middleware/auth";
-import {
-  createNotification,
-  createOrderMessage,
-  createStatusHistory,
-  ensurePaymentVerification,
-  ensureTracking,
-} from "../utils/orderUpdates";
 
 const router = Router();
 
@@ -82,7 +75,6 @@ router.get("/orders", async (req, res) => {
       include: {
         user: { select: { name: true, email: true, phone: true } },
         items: { include: { product: { select: { name: true } } } },
-        tracking: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -114,28 +106,18 @@ router.patch("/orders/:id/status", async (req, res) => {
 });
 
 // Update payment verification status
-router.patch("/orders/:id/payment-status", async (req: AuthRequest, res: Response) => {
+router.patch("/orders/:id/payment-status", async (req, res) => {
   try {
-    const { paymentStatus, rejectionReason, screenshotRequested } = req.body;
-    const orderId = req.params.id as string;
-
-    if (!paymentStatus || !["PAID", "REJECTED", "PENDING", "COD_PENDING", "COD_CONFIRMED"].includes(paymentStatus)) {
+    const { paymentStatus } = req.body;
+    if (!paymentStatus || !["PAID", "REJECTED"].includes(paymentStatus)) {
       return res.status(400).json({ message: "Invalid payment status" });
     }
 
-    const currentOrder = await prisma.order.findUnique({ where: { id: orderId } });
-    if (!currentOrder) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    const paymentVerification = await ensurePaymentVerification(orderId, paymentStatus === "PAID" ? "VERIFIED" : "PENDING");
-
     const order = await prisma.order.update({
-      where: { id: orderId },
+      where: { id: req.params.id as string },
       data: {
         paymentStatus,
         verifiedAt: paymentStatus === "PAID" ? new Date() : null,
-        status: paymentStatus === "REJECTED" ? currentOrder.status : currentOrder.status,
       },
       include: {
         user: { select: { name: true, email: true } },
@@ -143,164 +125,9 @@ router.patch("/orders/:id/payment-status", async (req: AuthRequest, res: Respons
       },
     });
 
-    await prisma.paymentVerification.update({
-      where: { orderId },
-      data: {
-        verificationStatus: paymentStatus === "PAID" ? "VERIFIED" : paymentStatus === "REJECTED" ? "REJECTED" : paymentStatus,
-        verifiedBy: req.user!.id,
-        verificationDate: new Date(),
-        rejectionReason: paymentStatus === "REJECTED" ? rejectionReason || null : null,
-        screenshotRequested: Boolean(screenshotRequested),
-      },
-    });
-
-    if (paymentStatus === "PAID") {
-      await createStatusHistory(orderId, "PAID", "Payment accepted by admin", req.user!.id);
-      await createNotification({
-        userId: order.userId,
-        orderId,
-        title: "Payment Accepted",
-        message: "Your QR payment has been verified successfully.",
-        type: "PAYMENT_ACCEPTED",
-      });
-    }
-
-    if (paymentStatus === "REJECTED") {
-      await createStatusHistory(orderId, "REJECTED", `Payment rejected: ${rejectionReason || "No reason provided"}`, req.user!.id);
-      await createNotification({
-        userId: order.userId,
-        orderId,
-        title: "Payment Rejected",
-        message: rejectionReason || "Payment could not be verified.",
-        type: "PAYMENT_REJECTED",
-      });
-      if (screenshotRequested) {
-        await createOrderMessage({
-          orderId,
-          senderType: "ADMIN",
-          senderId: req.user!.id,
-          message: "Please upload your payment screenshot for review.",
-        });
-        await createNotification({
-          userId: order.userId,
-          orderId,
-          title: "Screenshot Requested",
-          message: "Please upload your payment screenshot for verification.",
-          type: "SCREENSHOT_REQUESTED",
-        });
-      }
-    }
-
     res.json(order);
   } catch {
     res.status(500).json({ message: "Failed to update payment status" });
-  }
-});
-
-// Create order message
-router.post("/orders/:id/messages", async (req: AuthRequest, res: Response) => {
-  try {
-    const { message, attachment } = req.body;
-    const orderId = req.params.id as string;
-    if (!message?.trim()) {
-      return res.status(400).json({ message: "Message is required" });
-    }
-
-    const order = await prisma.order.findUnique({ where: { id: orderId } });
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    const savedMessage = await createOrderMessage({
-      orderId,
-      senderType: "ADMIN",
-      senderId: req.user!.id,
-      message: message.trim(),
-      attachment: attachment || null,
-    });
-
-    await createNotification({
-      userId: order.userId,
-      orderId,
-      title: "Admin Message",
-      message: message.trim(),
-      type: "ADMIN_MESSAGE",
-    });
-
-    res.json(savedMessage);
-  } catch {
-    res.status(500).json({ message: "Failed to send order message" });
-  }
-});
-
-// Update tracking
-router.patch("/orders/:id/tracking", async (req: AuthRequest, res: Response) => {
-  try {
-    const { courierName, trackingNumber, trackingLink, expectedDelivery, deliveryNotes } = req.body;
-    const orderId = req.params.id as string;
-    const tracking = await ensureTracking(orderId);
-    const normalizedExpectedDelivery = expectedDelivery
-      ? new Date(expectedDelivery)
-      : tracking.expectedDelivery
-        ? new Date(tracking.expectedDelivery)
-        : null;
-
-    const [updatedTracking, updatedOrder] = await prisma.$transaction([
-      prisma.tracking.update({
-        where: { orderId },
-        data: {
-          courierName: courierName || tracking.courierName,
-          trackingNumber: trackingNumber || tracking.trackingNumber,
-          trackingLink: trackingLink || tracking.trackingLink,
-          expectedDelivery: normalizedExpectedDelivery,
-          deliveryNotes: deliveryNotes || tracking.deliveryNotes,
-        },
-      }),
-      prisma.order.update({
-        where: { id: orderId },
-        data: {
-          deliveryDate: normalizedExpectedDelivery,
-        },
-      }),
-    ]);
-
-    await createStatusHistory(orderId, "TRACKING_UPDATED", "Tracking information updated", req.user!.id);
-    await createNotification({
-      userId: (await prisma.order.findUnique({ where: { id: orderId } }))!.userId,
-      orderId,
-      title: "Tracking Updated",
-      message: trackingNumber ? `Tracking number ${trackingNumber} has been added.` : "Tracking details were updated.",
-      type: "TRACKING_UPDATED",
-    });
-
-    res.json({ tracking: updatedTracking, order: updatedOrder });
-  } catch {
-    res.status(500).json({ message: "Failed to update tracking" });
-  }
-});
-
-// Get order details for admin
-router.get("/orders/:id/details", async (req: AuthRequest, res: Response) => {
-  try {
-    const order = await prisma.order.findUnique({
-      where: { id: req.params.id as string },
-      include: {
-        user: { select: { id: true, name: true, email: true, phone: true } },
-        items: { include: { product: true } },
-        messages: { orderBy: { createdAt: "asc" } },
-        statusHistory: { orderBy: { createdAt: "asc" } },
-        paymentVerification: true,
-        tracking: true,
-      },
-    });
-
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    res.json(order);
-  } catch {
-    res.status(500).json({ message: "Failed to fetch order details" });
   }
 });
 

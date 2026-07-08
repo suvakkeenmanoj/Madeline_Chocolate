@@ -4,11 +4,9 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { adminApi } from "@/lib/api";
-import { Order, ORDER_STATUS_LABELS, OrderStatus, OrderMessage } from "@/types";
-import { formatPrice, formatDate, formatDateTime } from "@/lib/utils";
+import { Order, ORDER_STATUS_LABELS, OrderStatus } from "@/types";
+import { formatPrice, formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
-import RejectPaymentModal from "@/components/RejectPaymentModal";
-import { MessageCircle } from "lucide-react";
 
 const STATUSES: OrderStatus[] = [
   "ORDER_PLACED",
@@ -28,13 +26,6 @@ function AdminOrdersContent() {
   const [paymentFilter, setPaymentFilter] = useState(
     searchParams.get("paymentMethod") || ""
   );
-  const [rejectModalOpen, setRejectModalOpen] = useState(false);
-  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
-  const [trackingDrafts, setTrackingDrafts] = useState<Record<string, { courierName: string; trackingNumber: string; trackingLink: string; expectedDelivery: string; deliveryNotes: string }>>({});
-  const [conversationOrderId, setConversationOrderId] = useState<string | null>(null);
-  const [conversationMessages, setConversationMessages] = useState<Record<string, OrderMessage[]>>({});
-  const [conversationDraft, setConversationDraft] = useState("");
-  const [sendingConversation, setSendingConversation] = useState(false);
 
   useEffect(() => {
     if (!loading && !user?.isAdmin) router.push("/login");
@@ -64,9 +55,9 @@ function AdminOrdersContent() {
     }
   };
 
-  const updatePaymentStatus = async (orderId: string, paymentStatus: string, rejectionReason?: string, screenshotRequested?: boolean) => {
+  const updatePaymentStatus = async (orderId: string, paymentStatus: string) => {
     try {
-      await adminApi.updatePaymentStatus(orderId, { paymentStatus, rejectionReason, screenshotRequested });
+      await adminApi.updatePaymentStatus(orderId, { paymentStatus });
       toast.success("Payment status updated");
       fetchOrders();
     } catch {
@@ -74,53 +65,13 @@ function AdminOrdersContent() {
     }
   };
 
-  const openRejectModal = (orderId: string) => {
-    setActiveOrderId(orderId);
-    setRejectModalOpen(true);
-  };
-
-  const submitRejectPayment = async (reason: string, screenshotRequested: boolean) => {
-    if (!activeOrderId) return;
-    await updatePaymentStatus(activeOrderId, "REJECTED", reason, screenshotRequested);
-    setRejectModalOpen(false);
-    setActiveOrderId(null);
-  };
-
-  const updateTracking = async (orderId: string) => {
-    const draft = trackingDrafts[orderId];
-    if (!draft) return;
+  const setDeliveryDate = async (orderId: string, date: string) => {
     try {
-      await adminApi.updateOrderTracking(orderId, draft);
-      toast.success("Tracking updated");
+      await adminApi.updateOrderStatus(orderId, { deliveryDate: date });
+      toast.success("Delivery date updated");
       fetchOrders();
     } catch {
-      toast.error("Failed to update tracking");
-    }
-  };
-
-  const openConversation = async (orderId: string) => {
-    try {
-      const { data } = await adminApi.getOrderDetails(orderId);
-      setConversationOrderId(orderId);
-      setConversationMessages((prev) => ({ ...prev, [orderId]: data.messages || [] }));
-      setConversationDraft("");
-    } catch {
-      toast.error("Failed to load conversation");
-    }
-  };
-
-  const sendConversationReply = async (orderId: string) => {
-    if (!conversationDraft.trim()) return;
-    setSendingConversation(true);
-    try {
-      const { data } = await adminApi.sendOrderMessage(orderId, { message: conversationDraft.trim() });
-      setConversationMessages((prev) => ({ ...prev, [orderId]: [...(prev[orderId] || []), data] }));
-      setConversationDraft("");
-      toast.success("Reply sent");
-    } catch {
-      toast.error("Failed to send reply");
-    } finally {
-      setSendingConversation(false);
+      toast.error("Failed to update delivery date");
     }
   };
 
@@ -157,10 +108,7 @@ function AdminOrdersContent() {
       </div>
 
       <div className="space-y-4">
-        {orders.map((order) => {
-          const expectedDelivery = order.tracking?.expectedDelivery || order.deliveryDate;
-
-          return (
+        {orders.map((order) => (
           <div
             key={order.id}
             className="p-5 bg-card rounded-2xl border border-border"
@@ -186,11 +134,8 @@ function AdminOrdersContent() {
               <div>
                 <span className="font-medium">Customer:</span> {order.user?.name} · {order.user?.email}
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium">Payment:</span>
-                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${order.paymentStatus === "PAID" ? "bg-green-100 text-green-700" : order.paymentStatus === "REJECTED" ? "bg-red-100 text-red-700" : order.paymentStatus === "COD_PENDING" ? "bg-orange-100 text-orange-700" : "bg-gray-100 text-gray-700"}`}>
-                  {order.paymentStatus}
-                </span>
+              <div>
+                <span className="font-medium">Payment:</span> {order.paymentStatus}
                 {order.utrNumber ? ` · UTR: ${order.utrNumber}` : ""}
               </div>
               {order.paymentScreenshot && (
@@ -200,9 +145,6 @@ function AdminOrdersContent() {
                   </a>
                 </div>
               )}
-              <div className="text-xs text-muted">
-                Expected delivery: {expectedDelivery ? formatDate(expectedDelivery) : "Not set"}
-              </div>
             </div>
 
             <div className="text-sm mb-4">
@@ -224,17 +166,10 @@ function AdminOrdersContent() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => openRejectModal(order.id)}
+                  onClick={() => updatePaymentStatus(order.id, "REJECTED")}
                   className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700"
                 >
                   Reject Payment
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openConversation(order.id)}
-                  className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium hover:bg-background"
-                >
-                  <span className="inline-flex items-center gap-2"><MessageCircle className="h-4 w-4" /> View Conversation</span>
                 </button>
               </div>
               <select
@@ -248,109 +183,21 @@ function AdminOrdersContent() {
                   </option>
                 ))}
               </select>
-            </div>
 
-            {conversationOrderId === order.id && (
-              <div className="mt-4 rounded-xl border border-border bg-background/60 p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-sm font-medium">Conversation</span>
-                </div>
-                <div className="space-y-2 max-h-60 overflow-auto">
-                  {(conversationMessages[order.id] || []).map((message) => (
-                    <div key={message.id} className={`rounded-lg border border-border p-2 text-sm ${message.senderType === "ADMIN" ? "bg-accent-light/20" : "bg-card"}`}>
-                      <div className="mb-1 flex items-center justify-between gap-2">
-                        <span className="font-medium">{message.senderType === "ADMIN" ? "You" : "Customer"}</span>
-                        <span className="text-xs text-muted">{formatDateTime(message.createdAt)}</span>
-                      </div>
-                      <p className="text-muted">{message.message}</p>
-                    </div>
-                  ))}
-                  {(conversationMessages[order.id] || []).length === 0 && (
-                    <p className="text-sm text-muted">No messages yet.</p>
-                  )}
-                </div>
-                <div className="mt-3 space-y-2">
-                  <textarea
-                    value={conversationDraft}
-                    onChange={(e) => setConversationDraft(e.target.value)}
-                    rows={3}
-                    className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
-                    placeholder="Reply to customer"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => sendConversationReply(order.id)}
-                    disabled={sendingConversation}
-                    className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-                  >
-                    {sendingConversation ? "Sending..." : "Send Reply"}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-4 rounded-xl border border-border bg-background/60 p-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-medium">Tracking</span>
-                <button
-                  type="button"
-                  onClick={() => updateTracking(order.id)}
-                  className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-white"
-                >
-                  Save Tracking
-                </button>
-              </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <input
-                  placeholder="Courier"
-                  value={trackingDrafts[order.id]?.courierName || ""}
-                  onChange={(e) => setTrackingDrafts((prev) => ({ ...prev, [order.id]: { courierName: e.target.value, trackingNumber: prev[order.id]?.trackingNumber || "", trackingLink: prev[order.id]?.trackingLink || "", expectedDelivery: prev[order.id]?.expectedDelivery || "", deliveryNotes: prev[order.id]?.deliveryNotes || "" } }))}
-                  className="px-3 py-2 text-sm rounded-lg border border-border bg-card"
-                />
-                <input
-                  placeholder="Tracking Number"
-                  value={trackingDrafts[order.id]?.trackingNumber || ""}
-                  onChange={(e) => setTrackingDrafts((prev) => ({ ...prev, [order.id]: { courierName: prev[order.id]?.courierName || "", trackingNumber: e.target.value, trackingLink: prev[order.id]?.trackingLink || "", expectedDelivery: prev[order.id]?.expectedDelivery || "", deliveryNotes: prev[order.id]?.deliveryNotes || "" } }))}
-                  className="px-3 py-2 text-sm rounded-lg border border-border bg-card"
-                />
-                <input
-                  placeholder="Tracking Link"
-                  value={trackingDrafts[order.id]?.trackingLink || ""}
-                  onChange={(e) => setTrackingDrafts((prev) => ({ ...prev, [order.id]: { courierName: prev[order.id]?.courierName || "", trackingNumber: prev[order.id]?.trackingNumber || "", trackingLink: e.target.value, expectedDelivery: prev[order.id]?.expectedDelivery || "", deliveryNotes: prev[order.id]?.deliveryNotes || "" } }))}
-                  className="px-3 py-2 text-sm rounded-lg border border-border bg-card"
-                />
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted">Expected delivery</label>
-                  <input
-                    type="date"
-                    value={trackingDrafts[order.id]?.expectedDelivery || ""}
-                    onChange={(e) => setTrackingDrafts((prev) => ({ ...prev, [order.id]: { courierName: prev[order.id]?.courierName || "", trackingNumber: prev[order.id]?.trackingNumber || "", trackingLink: prev[order.id]?.trackingLink || "", expectedDelivery: e.target.value, deliveryNotes: prev[order.id]?.deliveryNotes || "" } }))}
-                    className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-card"
-                  />
-                </div>
-                <textarea
-                  placeholder="Delivery notes"
-                  value={trackingDrafts[order.id]?.deliveryNotes || ""}
-                  onChange={(e) => setTrackingDrafts((prev) => ({ ...prev, [order.id]: { courierName: prev[order.id]?.courierName || "", trackingNumber: prev[order.id]?.trackingNumber || "", trackingLink: prev[order.id]?.trackingLink || "", expectedDelivery: prev[order.id]?.expectedDelivery || "", deliveryNotes: e.target.value } }))}
-                  className="md:col-span-2 px-3 py-2 text-sm rounded-lg border border-border bg-card"
-                  rows={2}
-                />
-              </div>
+              <input
+                type="date"
+                onChange={(e) => setDeliveryDate(order.id, e.target.value)}
+                className="px-3 py-1.5 text-sm rounded-lg border border-border bg-background"
+                title="Set expected delivery date"
+              />
             </div>
           </div>
-          );
-        })}
+        ))}
 
         {orders.length === 0 && (
           <p className="text-center py-10 text-muted">No orders found</p>
         )}
       </div>
-
-      <RejectPaymentModal
-        isOpen={rejectModalOpen}
-        onClose={() => setRejectModalOpen(false)}
-        onSubmit={submitRejectPayment}
-      />
     </div>
   );
 }

@@ -9,13 +9,10 @@ import {
   Download,
   Printer,
   Package,
-  MessageCircle,
-  Clock3,
-  CheckCircle2,
 } from "lucide-react";
 import { orderApi } from "@/lib/api";
-import { Order, ORDER_STATUS_LABELS, OrderMessage, OrderStatusHistoryItem, PaymentVerification, TrackingInfo } from "@/types";
-import { formatPrice, formatDate, formatDateTime, getPaymentStatusLabel } from "@/lib/utils";
+import { Order, ORDER_STATUS_LABELS } from "@/types";
+import { formatPrice, formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
 
 function OrderConfirmationContent() {
@@ -28,14 +25,6 @@ function OrderConfirmationContent() {
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
   const [submittingProof, setSubmittingProof] = useState(false);
-  const [messages, setMessages] = useState<OrderMessage[]>([]);
-  const [history, setHistory] = useState<OrderStatusHistoryItem[]>([]);
-  const [paymentVerification, setPaymentVerification] = useState<PaymentVerification | null>(null);
-  const [tracking, setTracking] = useState<TrackingInfo | null>(null);
-  const [messageDraft, setMessageDraft] = useState("");
-  const [sendingMessage, setSendingMessage] = useState(false);
-
-  const isUpiOrder = paymentMethod === "UPI" || order?.paymentMethod === "UPI";
 
   useEffect(() => {
     if (id) {
@@ -43,20 +32,12 @@ function OrderConfirmationContent() {
         .getById(id as string)
         .then(({ data }) => {
           setOrder(data);
-          return Promise.all([
-            orderApi.getMessages(id as string),
-            orderApi.getUpdates(id as string),
-            data.paymentMethod === "UPI" || paymentMethod === "UPI"
-              ? orderApi.getUpiQr(id as string)
-              : Promise.resolve(null),
-          ]);
+          if (paymentMethod === "UPI") {
+            return orderApi.getUpiQr(id as string);
+          }
         })
-        .then(([messagesRes, updatesRes, qrRes]) => {
-          setMessages(messagesRes.data || []);
-          setHistory(updatesRes.data?.statusHistory || []);
-          setPaymentVerification(updatesRes.data?.paymentVerification || null);
-          setTracking(updatesRes.data?.tracking || null);
-          if (qrRes) setUpiQr(qrRes.data.qrDataUrl);
+        .then((res) => {
+          if (res) setUpiQr(res.data.qrDataUrl);
         })
         .catch(() => toast.error("Failed to load order"))
         .finally(() => setLoading(false));
@@ -102,21 +83,6 @@ function OrderConfirmationContent() {
   };
 
   const handlePrint = () => window.print();
-
-  const handleSendMessage = async () => {
-    if (!messageDraft.trim()) return;
-    setSendingMessage(true);
-    try {
-      const { data } = await orderApi.sendMessage(id as string, { message: messageDraft.trim() });
-      setMessages((prev) => [...prev, data]);
-      setMessageDraft("");
-      toast.success("Message sent");
-    } catch {
-      toast.error("Failed to send message");
-    } finally {
-      setSendingMessage(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -191,22 +157,16 @@ function OrderConfirmationContent() {
         </div>
       </div>
 
-      {(isUpiOrder || paymentMethod === "UPI") && (
+      {paymentMethod === "UPI" && upiQr && (
         <div className="bg-card rounded-2xl border border-border p-6 mb-6 text-center">
           <h3 className="font-semibold mb-4">Scan to Pay via UPI</h3>
-          {upiQr ? (
-            <Image
-              src={upiQr}
-              alt="UPI QR Code"
-              width={250}
-              height={250}
-              className="mx-auto rounded-xl"
-            />
-          ) : (
-            <div className="mx-auto flex h-[250px] w-[250px] items-center justify-center rounded-xl border border-dashed border-border text-sm text-muted">
-              Loading QR code...
-            </div>
-          )}
+          <Image
+            src={upiQr}
+            alt="UPI QR Code"
+            width={250}
+            height={250}
+            className="mx-auto rounded-xl"
+          />
           <p className="text-lg font-bold mt-4 text-accent">
             {formatPrice(order.totalAmount)}
           </p>
@@ -263,94 +223,6 @@ function OrderConfirmationContent() {
               ? formatDate(order.deliveryDate)
               : "Expected Delivery Date will be updated by Admin"}
           </p>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 mb-6">
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <div className="mb-3 flex items-center gap-2">
-            <Clock3 className="h-4 w-4 text-primary" />
-            <h3 className="font-semibold">Payment Status</h3>
-          </div>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span>Status</span><span className="font-medium">{getPaymentStatusLabel(order.paymentStatus)}</span></div>
-            {paymentVerification?.rejectionReason && <div className="rounded-lg bg-red-50 p-2 text-red-700">{paymentVerification.rejectionReason}</div>}
-            {paymentVerification?.screenshotRequested && <p className="text-muted">Admin requested a payment screenshot.</p>}
-          </div>
-        </div>
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <div className="mb-3 flex items-center gap-2">
-            <Package className="h-4 w-4 text-primary" />
-            <h3 className="font-semibold">Tracking</h3>
-          </div>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span>Courier</span><span className="font-medium">{tracking?.courierName || "Pending"}</span></div>
-            <div className="flex justify-between"><span>Tracking</span><span className="font-medium">{tracking?.trackingNumber || "—"}</span></div>
-            <div className="flex justify-between"><span>Expected</span><span className="font-medium">{tracking?.expectedDelivery ? formatDate(tracking.expectedDelivery) : "Pending"}</span></div>
-            {tracking?.trackingLink ? (
-              <a href={tracking.trackingLink} target="_blank" rel="noreferrer" className="inline-flex items-center text-sm font-medium text-primary hover:text-accent">
-                Track Package
-              </a>
-            ) : (
-              <p className="text-muted">Tracking link will appear here once admin adds it.</p>
-            )}
-            {tracking?.deliveryNotes ? (
-              <div className="rounded-lg bg-background p-2 text-muted">{tracking.deliveryNotes}</div>
-            ) : null}
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-card p-5 mb-6">
-        <div className="mb-3 flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4 text-primary" />
-          <h3 className="font-semibold">Order Updates</h3>
-        </div>
-        <div className="space-y-3">
-          {history.length === 0 ? <p className="text-sm text-muted">No updates yet.</p> : history.map((entry) => (
-            <div key={entry.id} className="rounded-xl border border-border p-3 text-sm">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-medium">{entry.status}</span>
-                <span className="text-xs text-muted">{formatDateTime(entry.createdAt)}</span>
-              </div>
-              {entry.message && <p className="mt-1 text-muted">{entry.message}</p>}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-card p-5 mb-6">
-        <div className="mb-3 flex items-center gap-2">
-          <MessageCircle className="h-4 w-4 text-primary" />
-          <h3 className="font-semibold">Order Conversation</h3>
-        </div>
-        <div className="space-y-3">
-          {messages.map((message) => (
-            <div key={message.id} className={`rounded-xl border border-border p-3 text-sm ${message.senderType === "ADMIN" ? "bg-accent-light/20" : "bg-background"}`}>
-              <div className="mb-1 flex items-center justify-between gap-2">
-                <span className="font-medium">{message.senderType === "ADMIN" ? "Admin" : "You"}</span>
-                <span className="text-xs text-muted">{formatDateTime(message.createdAt)}</span>
-              </div>
-              <p className="text-muted">{message.message}</p>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 space-y-2">
-          <textarea
-            value={messageDraft}
-            onChange={(e) => setMessageDraft(e.target.value)}
-            rows={3}
-            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
-            placeholder="Send a message to the admin"
-          />
-          <button
-            type="button"
-            onClick={handleSendMessage}
-            disabled={sendingMessage}
-            className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {sendingMessage ? "Sending..." : "Send Message"}
-          </button>
         </div>
       </div>
 
