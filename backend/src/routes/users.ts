@@ -67,7 +67,8 @@ router.get("/orders", authenticate, async (req: AuthRequest, res: Response) => {
       orderBy: { createdAt: "desc" },
     });
     res.json(orders);
-  } catch {
+  } catch (error) {
+    console.error("[UsersRoute] fetch orders error:", error);
     res.status(500).json({ message: "Failed to fetch orders" });
   }
 });

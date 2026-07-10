@@ -12,15 +12,35 @@ export default function OrdersPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && !user) router.push("/login");
+    if (!loading && !user) {
+      router.push("/login");
+    }
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (user) {
-      userApi.getOrders().then(({ data }) => setOrders(data)).catch(console.error);
-    }
+    if (!user) return;
+
+    setOrdersLoading(true);
+    setOrdersError(null);
+    console.log("[OrdersPage] fetching orders for user", user.id);
+
+    userApi
+      .getOrders()
+      .then(({ data }) => {
+        console.log("[OrdersPage] orders response", data);
+        setOrders(data);
+      })
+      .catch((error) => {
+        console.error("[OrdersPage] failed to fetch orders", error);
+        setOrdersError("Failed to load orders. Please refresh the page.");
+      })
+      .finally(() => {
+        setOrdersLoading(false);
+      });
   }, [user]);
 
   if (loading || !user) return <div className="p-10 text-center">Loading...</div>;
@@ -29,7 +49,11 @@ export default function OrdersPage() {
     <div className="max-w-4xl mx-auto px-4 py-10">
       <h1 className="text-2xl font-bold text-primary-dark mb-6">My Orders</h1>
 
-      {orders.length === 0 ? (
+      {ordersLoading ? (
+        <div className="text-center py-16 text-muted">Loading your orders...</div>
+      ) : ordersError ? (
+        <div className="text-center py-16 text-red-500">{ordersError}</div>
+      ) : orders.length === 0 ? (
         <div className="text-center py-16 text-muted">
           <p>No orders yet</p>
           <Link href="/catalog" className="text-primary font-medium mt-2 inline-block">

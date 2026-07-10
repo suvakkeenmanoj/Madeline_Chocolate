@@ -25,6 +25,8 @@ function OrderConfirmationContent() {
   const [order, setOrder] = useState<Order | null>(null);
   const [upiQr, setUpiQr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
   const [submittingProof, setSubmittingProof] = useState(false);
@@ -38,29 +40,63 @@ function OrderConfirmationContent() {
   const isUpiOrder = paymentMethod === "UPI" || order?.paymentMethod === "UPI";
 
   useEffect(() => {
-    if (id) {
-      orderApi
-        .getById(id as string)
-        .then(({ data }) => {
-          setOrder(data);
-          return Promise.all([
-            orderApi.getMessages(id as string),
-            orderApi.getUpdates(id as string),
-            data.paymentMethod === "UPI" || paymentMethod === "UPI"
-              ? orderApi.getUpiQr(id as string)
-              : Promise.resolve(null),
-          ]);
-        })
-        .then(([messagesRes, updatesRes, qrRes]) => {
-          setMessages(messagesRes.data || []);
-          setHistory(updatesRes.data?.statusHistory || []);
-          setPaymentVerification(updatesRes.data?.paymentVerification || null);
-          setTracking(updatesRes.data?.tracking || null);
-          if (qrRes) setUpiQr(qrRes.data.qrDataUrl);
-        })
-        .catch(() => toast.error("Failed to load order"))
-        .finally(() => setLoading(false));
+    let cancelled = false;
+
+    async function fetchOrderDetails() {
+      if (!id) return;
+
+      setLoading(true);
+      setQrError(null);
+      setUpiQr(null);
+
+      try {
+        console.log("[OrderConfirmation] fetching order", id);
+        const { data: orderData } = await orderApi.getById(id as string);
+        if (cancelled) return;
+        console.log("[OrderConfirmation] order data", orderData);
+        setOrder(orderData);
+
+        const [messagesRes, updatesRes] = await Promise.all([
+          orderApi.getMessages(id as string),
+          orderApi.getUpdates(id as string),
+        ]);
+
+        if (cancelled) return;
+        console.log("[OrderConfirmation] messages", messagesRes.data);
+        console.log("[OrderConfirmation] updates", updatesRes.data);
+
+        setMessages(messagesRes.data || []);
+        setHistory(updatesRes.data?.statusHistory || []);
+        setPaymentVerification(updatesRes.data?.paymentVerification || null);
+        setTracking(updatesRes.data?.tracking || null);
+
+        if (orderData.paymentMethod === "UPI" || paymentMethod === "UPI") {
+          setQrLoading(true);
+          try {
+            const { data: qrRes } = await orderApi.getUpiQr(id as string);
+            if (cancelled) return;
+            console.log("[OrderConfirmation] UPI QR response", qrRes);
+            setUpiQr(qrRes.qrDataUrl);
+          } catch (qrError) {
+            console.error("[OrderConfirmation] failed to load UPI QR", qrError);
+            setQrError("Unable to load UPI QR code. Please refresh.");
+          } finally {
+            if (!cancelled) setQrLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error("[OrderConfirmation] failed to load order details", error);
+        toast.error("Failed to load order");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
+
+    fetchOrderDetails();
+
+    return () => {
+      cancelled = true;
+    };
   }, [id, paymentMethod]);
 
   const handleUploadProof = async () => {
@@ -195,16 +231,24 @@ function OrderConfirmationContent() {
         <div className="bg-card rounded-2xl border border-border p-6 mb-6 text-center">
           <h3 className="font-semibold mb-4">Scan to Pay via UPI</h3>
           {upiQr ? (
-            <Image
-              src={upiQr}
-              alt="UPI QR Code"
-              width={250}
-              height={250}
-              className="mx-auto rounded-xl"
-            />
-          ) : (
+            <div className="mx-auto h-[250px] w-[250px] overflow-hidden rounded-xl border border-border">
+              <img
+                src={upiQr}
+                alt="UPI QR Code"
+                className="h-full w-full object-contain"
+              />
+            </div>
+          ) : qrLoading ? (
             <div className="mx-auto flex h-[250px] w-[250px] items-center justify-center rounded-xl border border-dashed border-border text-sm text-muted">
               Loading QR code...
+            </div>
+          ) : qrError ? (
+            <div className="mx-auto flex h-[250px] w-[250px] items-center justify-center rounded-xl border border-dashed border-border text-sm text-red-500">
+              {qrError}
+            </div>
+          ) : (
+            <div className="mx-auto flex h-[250px] w-[250px] items-center justify-center rounded-xl border border-dashed border-border text-sm text-muted">
+              QR code unavailable
             </div>
           )}
           <p className="text-lg font-bold mt-4 text-accent">

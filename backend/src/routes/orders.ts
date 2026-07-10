@@ -170,7 +170,8 @@ router.get("/:id", authenticate, async (req: AuthRequest, res: Response) => {
     }
 
     res.json(order);
-  } catch {
+  } catch (error) {
+    console.error("[OrdersRoute] fetch order by id error:", error);
     res.status(500).json({ message: "Failed to fetch order" });
   }
 });
@@ -197,7 +198,8 @@ router.get("/:id/upi-qr", authenticate, async (req: AuthRequest, res: Response) 
       amount: order.totalAmount,
       orderNumber: order.orderNumber,
     });
-  } catch {
+  } catch (error) {
+    console.error("[OrdersRoute] generate UPI QR error:", error);
     res.status(500).json({ message: "Failed to generate UPI QR" });
   }
 });
@@ -323,7 +325,8 @@ router.post("/:id/messages", authenticate, async (req: AuthRequest, res: Respons
     });
 
     res.json(savedMessage);
-  } catch {
+  } catch (error) {
+    console.error("[OrdersRoute] send message error:", error);
     res.status(500).json({ message: "Failed to send message" });
   }
 });
@@ -343,7 +346,8 @@ router.get("/:id/messages", authenticate, async (req: AuthRequest, res: Response
       orderBy: { createdAt: "asc" },
     });
     res.json(messages);
-  } catch {
+  } catch (error) {
+    console.error("[OrdersRoute] fetch messages error:", error);
     res.status(500).json({ message: "Failed to fetch messages" });
   }
 });
@@ -365,7 +369,8 @@ router.get("/:id/updates", authenticate, async (req: AuthRequest, res: Response)
     ]);
 
     res.json({ statusHistory, paymentVerification, tracking });
-  } catch {
+  } catch (error) {
+    console.error("[OrdersRoute] fetch updates error:", error);
     res.status(500).json({ message: "Failed to fetch updates" });
   }
 });
