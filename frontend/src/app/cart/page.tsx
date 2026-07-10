@@ -4,10 +4,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { formatPrice } from "@/lib/utils";
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, subtotal, itemCount } = useCart();
+  const { user } = useAuth();
+  const isAdmin = Boolean(user?.isAdmin);
   const gst = Math.round(subtotal * 0.05 * 100) / 100;
   const grandTotal = subtotal + gst;
 
@@ -145,12 +148,18 @@ export default function CartPage() {
             </div>
           </div>
 
-          <Link
-            href="/checkout"
-            className="block w-full mt-6 py-3 bg-primary text-white text-center rounded-full font-semibold hover:bg-primary-dark transition-colors"
-          >
-            Proceed to Checkout
-          </Link>
+          {isAdmin ? (
+            <div className="mt-6 rounded-full border border-dashed border-orange-300 bg-orange-50 px-4 py-3 text-center text-sm font-medium text-orange-700">
+              Admin accounts cannot place customer orders.
+            </div>
+          ) : (
+            <Link
+              href="/checkout"
+              className="block w-full mt-6 py-3 bg-primary text-white text-center rounded-full font-semibold hover:bg-primary-dark transition-colors"
+            >
+              Proceed to Checkout
+            </Link>
+          )}
           <Link
             href="/catalog"
             className="block w-full mt-3 py-3 text-center text-muted hover:text-primary transition-colors text-sm"

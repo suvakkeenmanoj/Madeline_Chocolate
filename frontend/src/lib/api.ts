@@ -47,6 +47,9 @@ export const orderApi = {
     }),
   getInvoice: (id: string) =>
     api.get(`/orders/${id}/invoice`, { responseType: "blob" }),
+  getMessages: (id: string) => api.get(`/orders/${id}/messages`),
+  sendMessage: (id: string, data: object) => api.post(`/orders/${id}/messages`, data),
+  getUpdates: (id: string) => api.get(`/orders/${id}/updates`),
 };
 
 export const userApi = {
@@ -67,6 +70,11 @@ export const adminApi = {
     api.patch(`/admin/orders/${id}/status`, data),
   updatePaymentStatus: (id: string, data: object) =>
     api.patch(`/admin/orders/${id}/payment-status`, data),
+  sendOrderMessage: (id: string, data: object) =>
+    api.post(`/admin/orders/${id}/messages`, data),
+  updateOrderTracking: (id: string, data: object) =>
+    api.patch(`/admin/orders/${id}/tracking`, data),
+  getOrderDetails: (id: string) => api.get(`/admin/orders/${id}/details`),
   getCustomers: (search?: string) =>
     api.get("/admin/customers", { params: { search } }),
   getAnalytics: (period?: string) =>

@@ -6,7 +6,8 @@ import { generateUpiQr } from "../utils/upi";
 import { generateInvoicePdf } from "../utils/pdf";
 import { sendOrderConfirmationEmail } from "../utils/email";
 import { uploadToCloudinary } from "../utils/cloudinary";
-import { validateEmail, validatePhone } from "../utils/validation";
+import { validatePhone } from "../utils/validation";
+import { createNotification, createOrderMessage, createStatusHistory, ensurePaymentVerification, ensureTracking } from "../utils/orderUpdates";
 
 const router = Router();
 
@@ -48,6 +49,10 @@ router.post("/", authenticate, async (req: AuthRequest, res: Response) => {
 
     if (!items?.length || !paymentMethod || !deliveryAddress || !phone) {
       return res.status(400).json({ message: "Missing required order fields" });
+    }
+
+    if (req.user?.isAdmin) {
+      return res.status(403).json({ message: "Admin accounts cannot place customer orders" });
     }
 
     const phoneError = validatePhone(phone);
@@ -92,7 +97,7 @@ router.post("/", authenticate, async (req: AuthRequest, res: Response) => {
         totalAmount,
         gstAmount,
         paymentMethod,
-        paymentStatus: "PENDING",
+        paymentStatus: paymentMethod === "COD" ? "COD_PENDING" : "PENDING",
         utrNumber: paymentMethod === "UPI" ? utrNumber?.trim() : null,
         status: "ORDER_PLACED",
         deliveryAddress,
@@ -113,6 +118,27 @@ router.post("/", authenticate, async (req: AuthRequest, res: Response) => {
       where: { id: req.user!.id },
       data: { phone, address: deliveryAddress, city, state, pincode },
     });
+
+    await ensurePaymentVerification(order.id, paymentMethod === "COD" ? "PENDING" : "PENDING");
+    await ensureTracking(order.id);
+    await createStatusHistory(order.id, "ORDER_PLACED", "Order placed successfully", req.user!.id);
+    if (paymentMethod === "UPI") {
+      await createNotification({
+        userId: req.user!.id,
+        orderId: order.id,
+        title: "Payment Verification Pending",
+        message: "Your UPI payment is awaiting manual verification.",
+        type: "PAYMENT_PENDING",
+      });
+    } else {
+      await createNotification({
+        userId: req.user!.id,
+        orderId: order.id,
+        title: "Order Placed",
+        message: "Your order has been placed and is awaiting confirmation.",
+        type: "ORDER_PLACED",
+      });
+    }
 
     // Send confirmation email (non-blocking)
     sendOrderConfirmationEmail(order).catch(console.error);
@@ -197,9 +223,33 @@ router.post(
       }
 
       const imageUrl = await uploadToCloudinary(req.file.buffer);
+      await prisma.paymentVerification.upsert({
+        where: { orderId: req.params.id as string },
+        create: {
+          orderId: req.params.id as string,
+          paymentScreenshot: imageUrl,
+          screenshotRequested: true,
+          verificationStatus: "PENDING",
+        },
+        update: {
+          paymentScreenshot: imageUrl,
+          screenshotRequested: true,
+          verificationStatus: "PENDING",
+        },
+      });
+
       const updatedOrder = await prisma.order.update({
         where: { id: req.params.id as string },
         data: { paymentScreenshot: imageUrl },
+      });
+
+      await createStatusHistory(req.params.id as string, "SCREENSHOT_UPLOADED", "Payment screenshot uploaded by customer", req.user!.id);
+      await createNotification({
+        userId: order.userId,
+        orderId: order.id,
+        title: "Screenshot Uploaded",
+        message: "Your payment screenshot has been uploaded and is ready for review.",
+        type: "SCREENSHOT_UPLOADED",
       });
 
       res.json(updatedOrder);
@@ -224,9 +274,99 @@ router.post("/:id/confirm-upi", authenticate, async (req: AuthRequest, res: Resp
         user: { select: { name: true, email: true } },
       },
     });
+    await ensurePaymentVerification(req.params.id as string, "VERIFIED");
+    await createStatusHistory(req.params.id as string, "PAID", "Payment confirmed", req.user!.id);
+    await createNotification({
+      userId: order.userId,
+      orderId: order.id,
+      title: "Payment Accepted",
+      message: "Your payment has been confirmed.",
+      type: "PAYMENT_ACCEPTED",
+    });
     res.json(order);
   } catch {
     res.status(500).json({ message: "Failed to confirm payment" });
+  }
+});
+
+// User messages
+router.post("/:id/messages", authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { message, attachment } = req.body;
+    if (!message?.trim()) {
+      return res.status(400).json({ message: "Message is required" });
+    }
+
+    const order = await prisma.order.findUnique({ where: { id: req.params.id as string } });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    if (order.userId !== req.user!.id && !req.user!.isAdmin) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const savedMessage = await createOrderMessage({
+      orderId: order.id,
+      senderType: "USER",
+      senderId: req.user!.id,
+      message: message.trim(),
+      attachment: attachment || null,
+    });
+
+    await createNotification({
+      userId: req.user!.isAdmin ? order.userId : req.user!.id,
+      orderId: order.id,
+      title: "New Message",
+      message: message.trim(),
+      type: "USER_MESSAGE",
+    });
+
+    res.json(savedMessage);
+  } catch {
+    res.status(500).json({ message: "Failed to send message" });
+  }
+});
+
+router.get("/:id/messages", authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const order = await prisma.order.findUnique({ where: { id: req.params.id as string } });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    if (order.userId !== req.user!.id && !req.user!.isAdmin) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const messages = await prisma.orderMessage.findMany({
+      where: { orderId: req.params.id as string },
+      orderBy: { createdAt: "asc" },
+    });
+    res.json(messages);
+  } catch {
+    res.status(500).json({ message: "Failed to fetch messages" });
+  }
+});
+
+router.get("/:id/updates", authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const order = await prisma.order.findUnique({ where: { id: req.params.id as string } });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    if (order.userId !== req.user!.id && !req.user!.isAdmin) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const [statusHistory, paymentVerification, tracking] = await Promise.all([
+      prisma.orderStatusHistory.findMany({ where: { orderId: req.params.id as string }, orderBy: { createdAt: "asc" } }),
+      prisma.paymentVerification.findUnique({ where: { orderId: req.params.id as string } }),
+      prisma.tracking.findUnique({ where: { orderId: req.params.id as string } }),
+    ]);
+
+    res.json({ statusHistory, paymentVerification, tracking });
+  } catch {
+    res.status(500).json({ message: "Failed to fetch updates" });
   }
 });
 
