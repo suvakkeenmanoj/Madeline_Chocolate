@@ -50,23 +50,23 @@ export default function Footer() {
                 <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-accent-light/20 text-primary">
                   <Phone className="w-4 h-4" />
                 </span>
-                <a href="tel:+919876543210" className="hover:text-accent transition-colors">
-                  +91 98765 43210
+                <a href="tel:+916380952367" className="hover:text-accent transition-colors">
+                  +91 63809 52367
                 </a>
               </li>
               <li className="flex items-center gap-2">
                 <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-accent-light/20 text-primary">
                   <Mail className="w-4 h-4" />
                 </span>
-                <a href="mailto:hello@madelinechocolate.com" className="hover:text-accent transition-colors">
-                  hello@madelinechocolate.com
+                <a href="mailto:sangeethabregitwillson@gmail.com" className="hover:text-accent transition-colors">
+                  sangeethabregitwillson@gmail.com
                 </a>
               </li>
               <li className="flex items-center gap-2">
                 <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-accent-light/20 text-primary">
                   <MapPin className="w-4 h-4" />
                 </span>
-                <span>Chennai, Tamil Nadu, India</span>
+                <span>3249+XFX, Mounasamy Naidu Nagar Rd, Cheran ma Nagar, Coimbatore, Tamil Nadu 641035, India</span>
               </li>
               <li className="flex items-center gap-2">
                 <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-accent-light/20 text-primary">

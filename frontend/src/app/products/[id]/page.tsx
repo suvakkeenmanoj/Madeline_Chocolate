@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Minus, Plus, ShoppingCart, Star } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { userApi, reviewApi } from "@/lib/api";
+import ReviewsWidget from "@/components/ReviewsWidget";
+import ReviewForm from "@/components/ReviewForm";
 import { productApi } from "@/lib/api";
 import { Product, ProductVariant } from "@/types";
 import { formatPrice } from "@/lib/utils";
@@ -20,6 +24,8 @@ export default function ProductDetailPage() {
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [customization, setCustomization] = useState<Record<string, string>>({});
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const { user, loading: authLoading } = useAuth();
+  const [eligibleOrderItem, setEligibleOrderItem] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -35,6 +41,32 @@ export default function ProductDetailPage() {
         .finally(() => setLoading(false));
     }
   }, [id]);
+
+  useEffect(() => {
+    const checkEligible = async () => {
+      if (!user) return setEligibleOrderItem(null);
+      try {
+        const { data: orders } = await userApi.getOrders();
+        console.log("Orders:", orders);
+        for (const o of orders) {
+          if (o.status !== "DELIVERED") continue;
+          for (const item of o.items) {
+            if (item.product.id === id) {
+              // check review existence via backend
+              const { data: reviewData } = await reviewApi.getByProduct(id as string, { page: 1, limit: 100 });
+              const exists = (reviewData.reviews || []).some((r: any) => r.orderItemId === item.id);
+              console.log("Eligible order item:", item.id);
+              if (!exists) return setEligibleOrderItem(item.id);
+            }
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+      setEligibleOrderItem(null);
+    };
+    checkEligible();
+  }, [user, id]);
 
   const currentPrice = selectedVariant?.price ?? product?.price ?? 0;
 
@@ -218,6 +250,12 @@ export default function ProductDetailPage() {
           )}
 
           <div className="flex items-center gap-4 mt-8">
+            {eligibleOrderItem && (
+                  <div className="mt-8">
+                    <h3 className="text-lg font-semibold mb-3">Write a Review</h3>
+                    <ReviewForm productId={product.id} orderItemId={eligibleOrderItem} onSaved={() => window.location.reload()} />
+                  </div>
+                )}
             <div className="flex items-center border border-border rounded-full">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -245,40 +283,13 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {product.reviews && product.reviews.length > 0 && (
-        <section className="mt-16">
-          <h2 className="text-2xl font-bold text-primary-dark mb-6">
-            Customer Reviews
-          </h2>
-          <div className="grid gap-4">
-            {product.reviews.map((review) => (
-              <div
-                key={review.id}
-                className="p-4 bg-card rounded-xl border border-border"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="flex">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        className={`w-3.5 h-3.5 ${
-                          star <= review.rating
-                            ? "fill-accent text-accent"
-                            : "text-border"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-sm font-medium">{review.user.name}</span>
-                </div>
-                {review.review && (
-                  <p className="text-sm text-muted">{review.review}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      <section className="mt-16">
+  <h2 className="text-2xl font-bold text-primary-dark mb-6">
+    Customer Reviews
+  </h2>
+
+  <ReviewsWidget productId={product.id} />
+</section>
     </div>
   );
 }

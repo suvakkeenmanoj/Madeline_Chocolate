@@ -14,19 +14,19 @@ export default function ContactPage() {
             {
               icon: Phone,
               title: "Phone / WhatsApp",
-              content: "+91 98765 43210",
-              href: "https://wa.me/919876543210",
+              content: "+91 63809 52367",
+              href: "https://wa.me/916380952367",
             },
             {
               icon: Mail,
               title: "Email",
-              content: "hello@madelinechocolate.com",
-              href: "mailto:hello@madelinechocolate.com",
+              content: "sangeethabregitwillson@gmail.com",
+              href: "mailto:sangeethabregitwillson@gmail.com",
             },
             {
               icon: MapPin,
               title: "Location",
-              content: "Chennai, Tamil Nadu, India",
+              content: "3249+XFX, Mounasamy Naidu Nagar Rd, Cheran ma Nagar, Coimbatore, Tamil Nadu 641035, India",
             },
             {
               icon: Clock,
@@ -80,7 +80,7 @@ export default function ContactPage() {
               />
             </div>
             <a
-              href="https://wa.me/919876543210"
+              href="https://wa.me/916380952367"
               target="_blank"
               rel="noopener noreferrer"
               className="block w-full py-3 btn-whatsapp text-center font-semibold hover:opacity-90 transition-opacity"

@@ -52,6 +52,13 @@ export const orderApi = {
   getUpdates: (id: string) => api.get(`/orders/${id}/updates`),
 };
 
+export const reviewApi = {
+  create: (data: object) => api.post("/reviews", data),
+  getByProduct: (productId: string, params?: object) => api.get(`/reviews/product/${productId}`, { params }),
+  update: (id: string, data: object) => api.put(`/reviews/${id}`, data),
+  delete: (id: string) => api.delete(`/reviews/${id}`),
+};
+
 export const userApi = {
   getProfile: () => api.get("/users/profile"),
   updateProfile: (data: object) => api.put("/users/profile", data),
@@ -60,6 +67,7 @@ export const userApi = {
   addToWishlist: (productId: string) => api.post(`/users/wishlist/${productId}`),
   removeFromWishlist: (productId: string) =>
     api.delete(`/users/wishlist/${productId}`),
+  getReviews: () => api.get(`/users/reviews`),
 };
 
 export const adminApi = {
@@ -79,4 +87,7 @@ export const adminApi = {
     api.get("/admin/customers", { params: { search } }),
   getAnalytics: (period?: string) =>
     api.get("/admin/analytics", { params: { period } }),
+  // reviews
+  getReviews: (params?: object) => api.get("/admin/reviews", { params }),
+  patchReview: (id: string, data: object) => api.patch(`/admin/reviews/${id}`, data),
 };
