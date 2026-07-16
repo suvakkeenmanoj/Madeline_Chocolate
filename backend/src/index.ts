@@ -6,6 +6,7 @@ import userRoutes from "./routes/users";
 import productRoutes from "./routes/products";
 import orderRoutes from "./routes/orders";
 import adminRoutes from "./routes/admin";
+import reviewRoutes from "./routes/reviews";
 
 dotenv.config();
 
@@ -29,6 +30,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 app.use(
   (

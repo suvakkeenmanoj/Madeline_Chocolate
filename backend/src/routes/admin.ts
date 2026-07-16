@@ -401,4 +401,63 @@ router.get("/analytics", async (req, res) => {
   }
 });
 
+// Admin: Reviews management
+router.get("/reviews", async (req, res) => {
+  try {
+    const { rating, productId, customerId, search, page = "1", limit = "20", hidden } = req.query as any;
+    const where: any = {};
+    if (rating) where.rating = Number(rating);
+    if (productId) where.productId = productId;
+    if (customerId) where.userId = customerId;
+    if (hidden !== undefined) where.hidden = hidden === "true";
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { comment: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    const p = Math.max(1, Number(page));
+    const l = Math.min(100, Number(limit));
+
+    const [total, reviews] = await Promise.all([
+      prisma.review.count({ where }),
+      prisma.review.findMany({
+        where,
+        include: { user: { select: { id: true, name: true, email: true } }, product: { select: { id: true, name: true } }, order: true, orderItem: true },
+        orderBy: { createdAt: "desc" },
+        skip: (p - 1) * l,
+        take: l,
+      }),
+    ]);
+
+    res.json({ total, reviews, page: p, limit: l });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch reviews" });
+  }
+});
+
+router.patch("/reviews/:id", async (req, res) => {
+  try {
+    const id = req.params.id as string;
+    const { hidden, featured, action } = req.body as any;
+
+    if (action === "delete") {
+      await prisma.review.delete({ where: { id } });
+      return res.json({ message: "Review deleted" });
+    }
+
+    const data: any = {};
+    if (hidden !== undefined) data.hidden = Boolean(hidden);
+    if (featured !== undefined) data.featured = Boolean(featured);
+
+    const updated = await prisma.review.update({ where: { id }, data });
+    res.json(updated);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to update review" });
+  }
+});
+
 export default router;

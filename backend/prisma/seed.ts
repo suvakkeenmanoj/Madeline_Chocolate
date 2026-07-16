@@ -23,14 +23,14 @@ async function main() {
     where: { email: adminEmail },
     update: {
       name: "Admin",
-      phone: "9876543210",
+      phone: "6380952367",
       password: adminPasswordHash,
       isAdmin: true,
     },
     create: {
       name: "Admin",
       email: adminEmail,
-      phone: "9876543210",
+      phone: "6380952367",
       password: adminPasswordHash,
       isAdmin: true,
     },

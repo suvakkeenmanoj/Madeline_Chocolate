@@ -115,9 +115,9 @@ export function generateInvoicePdf(order: OrderForPdf, res: Response) {
   // Footer
   doc.fontSize(9).font("Helvetica").fillColor("#666666");
   doc.text(
-    "Thank you for choosing Madeline_chocolate! For queries, contact us on WhatsApp.",
+    "Thank you for choosing Madeline_chocolate! For queries, contact us on WhatsApp: +91 63809 52367 or email sangeethabregitwillson@gmail.com",
     50,
-    doc.page.height - 80,
+    doc.page.height - 100,
     { align: "center", width: 495 }
   );
 

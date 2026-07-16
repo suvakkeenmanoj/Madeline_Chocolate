@@ -122,4 +122,19 @@ router.delete("/wishlist/:productId", authenticate, async (req: AuthRequest, res
   }
 });
 
+// Get reviews for authenticated user
+router.get("/reviews", authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const reviews = await prisma.review.findMany({
+      where: { userId: req.user!.id },
+      include: { product: { select: { id: true, name: true, image: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(reviews);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch reviews" });
+  }
+});
+
 export default router;

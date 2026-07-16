@@ -16,7 +16,7 @@ async function main() {
         create: {
             name: "Admin",
             email: process.env.ADMIN_EMAIL || "admin@madelinechocolate.com",
-            phone: "9876543210",
+            phone: "6380952367",
             password: adminPassword,
             isAdmin: true,
         },

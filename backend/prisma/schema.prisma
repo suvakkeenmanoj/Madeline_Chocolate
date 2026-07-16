@@ -106,6 +106,7 @@ model Order {
   statusHistory       OrderStatusHistory[]
   paymentVerification PaymentVerification?
   tracking            Tracking?
+  reviews             Review[]
 }
 
 model OrderItem {
@@ -117,6 +118,7 @@ model OrderItem {
   quantity      Int
   price         Float
   customization Json?
+  review        Review? @relation()
 }
 
 model Review {
@@ -125,11 +127,21 @@ model Review {
   user      User     @relation(fields: [userId], references: [id])
   productId String
   product   Product  @relation(fields: [productId], references: [id])
-  orderId   String?
-  rating    Int
-  review    String?
-  image     String?
-  createdAt DateTime @default(now())
+  orderId       String?
+  orderItemId   String?
+  order         Order?     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem     OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  rating        Int
+  title         String?
+  comment       String?
+  suggestion    String?
+  verified      Boolean   @default(false)
+  featured      Boolean   @default(false)
+  hidden        Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([orderItemId])
 }
 
 model Notification {
