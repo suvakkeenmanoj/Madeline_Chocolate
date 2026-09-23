@@ -69,6 +69,7 @@ npm run dev
 
 ### 3. Access the App
 
+- **Link:** https://madeline-chocolate.vercel.app
 - **Storefront:** http://localhost:3000
 - **API:** http://localhost:5000/api/health
 - **Admin Login:** admin@madelinechocolate.com / Admin@123456
